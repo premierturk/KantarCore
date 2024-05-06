@@ -1,0 +1,15 @@
+<div class="modal-header">
+    <h5 class="modal-title" id="modal-basic-title">Veriler Sisteme İşleniyor ...</h5>
+</div>
+<div class="modal-body">
+
+    <div *ngIf="!finished">
+        <kendo-progressbar [animation]="animation" [label]='label' [value]="percent"></kendo-progressbar>
+    </div>
+    <div *ngIf="finished" class="text-center">
+        <h6>Veriler başarıyla sisteme işlendi. Pencereyi kapatabilirsiniz</h6>
+        <app-button [buttonType]="ButtonType.Kapat" (onclick)="close()"></app-button>
+    </div>
+</div>
+<div class="modal-footer">
+</div>

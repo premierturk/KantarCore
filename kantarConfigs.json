@@ -1,0 +1,18 @@
+{
+  "debugKantar": {
+    "kantarId": 1,
+    "depolamaAlanId": 1,
+    "kantarAdi": "DEBUG Kantar",
+    "kantarMarka": "tartanTarim",
+    "kantar": true,
+    "printerName": "EPSON LX-350",
+    "isPrinterOn": false,
+    "serialPort": {
+      "path": "COM14",
+      "autoOpen": false,
+      "baudRate": 9600,
+      "dataBits": 8,
+      "parity": "none"
+    }
+  }
+}

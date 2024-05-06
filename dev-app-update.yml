@@ -1,0 +1,4 @@
+owner: premierturk
+repo: KantarCore
+provider: github
+updaterCacheDirName: kantarcore-updater

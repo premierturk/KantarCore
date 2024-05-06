@@ -1,0 +1,15 @@
+::ng-deep .k-list-filter {
+  padding: 8px 10px;
+}
+
+::ng-deep .k-input-icon {
+  padding: 0px 6px !important;
+}
+
+::ng-deep .k-input-inner {
+  padding: 4px 10px !important;
+}
+
+::ng-deep kendo-grid {
+  height: calc(100vh - 240px);
+}

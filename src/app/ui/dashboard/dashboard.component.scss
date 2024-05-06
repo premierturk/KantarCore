@@ -1,0 +1,27 @@
+.card-body {
+    padding: 5px !important;
+}
+
+kendo-grid-column {
+    white-space: nowrap;
+}
+
+.vertical-text-center{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.excel-btn:hover{
+    color: white;
+    background-color: #025b32;
+    border-color: #045d33;
+}
+.excel-btn{
+    color: white;
+    background-color: #058b4d;
+    border-color: #058b4d;
+}
+
+.k-grid tr.localData {
+    background-color: #fce28f !important;
+} 

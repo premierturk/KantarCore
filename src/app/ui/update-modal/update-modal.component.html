@@ -1,0 +1,18 @@
+<div class="modal-header">
+    <h5 class="modal-title" id="modal-basic-title">Güncelleme İndiriliyor ...</h5>
+</div>
+<div class="modal-body">
+
+    <div *ngIf="!finished">
+        <kendo-progressbar [animation]="animation" [label]='label' [value]="percent"></kendo-progressbar>
+        <div class="form-group">
+            <label>Hız :</label> {{speed}} mbps
+        </div>
+    </div>
+    <div *ngIf="finished" class="text-center">
+        <h6>Güncelleme başarıyla indirildi yüklemek için tamama basın.</h6>
+        <button class="btn btn-primary" (click)="update()"> <i class="fa-download far fas pr-2"></i>Tamam</button>
+    </div>
+</div>
+<div class="modal-footer">
+</div>

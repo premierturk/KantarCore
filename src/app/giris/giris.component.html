@@ -1,0 +1,41 @@
+<div class="auth-wrapper">
+  <div class="auth-content">
+    <div class="card">
+      <div class="row align-items-center text-center">
+        <div class="col-md-12">
+          <div class="card-body">
+            <img src="{{logoSrc}}" class="w-100 pb-3" alt="Kantar Logo">
+            <div class="input-group mb-3">
+              <div class="input-group-prepend">
+                <span class="input-group-text"><i class="feather icon-user"></i></span>
+              </div>
+              <input type="text" class="form-control" placeholder="Kullanıcı adı giriniz"
+                [(ngModel)]="formData.username">
+            </div>
+            <div class="input-group mb-4">
+              <div class="input-group-prepend">
+                <span class="input-group-text"><i class="feather icon-lock"></i></span>
+              </div>
+              <input type="password" class="form-control" placeholder="Şifre giriniz" [(ngModel)]="formData.password"
+                (keyup.enter)="giris()">
+            </div>
+            <button class="btn btn-block btn-primary mb-3" style="background-color:#1b63b5;border-color:white"
+              (click)="giris()">
+              Giriş
+            </button>
+            <div [hidden]="!isLoading">
+              <div class="d-flex justify-content-center">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="sr-only">Loading...</span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

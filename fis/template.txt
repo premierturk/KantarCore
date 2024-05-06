@@ -1,0 +1,12 @@
+{{KantarAdi}}  
+
+Tartı No            : {{HafriyatDokumId}}
+Belge No          : {{BelgeNo}}
+Plaka                 : {{PlakaNo}}
+İşlem Tarihi      : {{IslemTarihi}}
+Firma Adı          : {{FirmaAdi}} 
+
+
+1.Tartı                : {{Dara}} kg
+2.Tartı                : {{Tonaj}} kg
+Net                     : {{NetTonaj}} kg

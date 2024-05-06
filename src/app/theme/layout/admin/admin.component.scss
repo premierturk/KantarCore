@@ -1,0 +1,12 @@
+.no-nav-router-class {
+    position: relative;
+    margin-top: 50px;
+    padding-top: 0;
+    display: block;
+    clear: both;
+    float: unset;
+    right: 0;
+    top: 0;
+    min-height: calc(100vh - 50px);
+    transition: all 0.15s ease-in-out;
+}

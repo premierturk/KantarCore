@@ -1,0 +1,8 @@
+<button type="button"
+        class="m-1 btn {{class}}"
+        (click)="onclick.emit()"
+        [disabled]="isdisabled"
+        *ngIf="condition"
+        >
+  <i class="far {{icon}}"></i> {{text}}
+</button>
