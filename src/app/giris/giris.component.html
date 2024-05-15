@@ -19,7 +19,13 @@
               <input type="password" class="form-control" placeholder="Şifre giriniz" [(ngModel)]="formData.password"
                 (keyup.enter)="giris()">
             </div>
-            <button class="btn btn-block btn-primary mb-3" style="background-color:#1b63b5;border-color:white"
+            <div class="form-group text-left mt-2">
+              <div class="checkbox checkbox-primary d-inline">
+                <input type="checkbox" name="checkbox-fill-1" id="checkbox-fill-a1" checked="" [(ngModel)]="remember">
+                <label for="checkbox-fill-a1" class="cr"> Giriş bilgilerimi hatırla</label>
+              </div>
+            </div>
+            <button class="btn btn-block btn-primary mb-3" style="background-color:#12437a;border-color:white"
               (click)="giris()">
               Giriş
             </button>

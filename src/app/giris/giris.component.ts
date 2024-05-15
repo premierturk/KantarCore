@@ -11,15 +11,31 @@ import httpClient from '../service/http-client';
 })
 export class GirisComponent {
   public gradientConfig: any;
+  public remember: boolean = false;
+
   constructor(
     public ds: DataSource,
     private router: Router,
   ) {
     this.gradientConfig = GradientConfig.config;
   }
+
+  private getLoginInfo() {
+    var info = window.localStorage.getItem("login");
+    if (info != null) {
+      this.formData = JSON.parse(info);
+      this.remember = true;
+    }
+  };
+
+  ngOnInit() {
+    this.getLoginInfo();
+  }
+
+
   private url: string = environment.production ? environment.apiUrl : "/api";
   isLoading: boolean = false;
-  public logoSrc:string=environment.url+"/HYS/img/logo/logo.jpg";
+  public logoSrc: string = environment.url + "/HYS/img/logo/logo.png";
   public formData: any = {
     username: '',
     password: '',
@@ -32,6 +48,8 @@ export class GirisComponent {
     this.isLoading = false;
     if (![null, undefined, "null"].includes(result.authtoken)) {
       window.localStorage.setItem('user', JSON.stringify(result));
+      if (this.remember) window.localStorage.setItem("login", JSON.stringify(this.formData));
+      else window.localStorage.removeItem("login");
       httpClient.defaults.headers.common.Authorization = `Bearer ${result.authtoken}`;
       this.router.navigate(["/dashboard"]);
     }

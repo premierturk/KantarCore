@@ -1,5 +1,6 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {GradientConfig} from '../../../../app-config';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { GradientConfig } from '../../../../app-config';
+import { environment } from '../../../../../environment';
 
 @Component({
   selector: 'app-nav-bar',
@@ -11,6 +12,9 @@ export class NavBarComponent implements OnInit {
   public menuClass: boolean;
   public collapseStyle: string;
   public windowWidth: number;
+
+  private url: string = environment.production ? environment.apiUrl : "/api";
+  public logoSrc: string = environment.url + "/HYS/img/logo/logo.png";
 
   @Output() onNavCollapse = new EventEmitter();
   @Output() onNavHeaderMobCollapse = new EventEmitter();

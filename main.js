@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu } = require("electron");
 const Shortcut = require("electron-shortcut");
 const { autoUpdater } = require("electron-updater");
 const path = require("path");
@@ -7,6 +7,7 @@ const fs = require("fs");
 const { SerialPort } = require("serialport");
 const net = require("net");
 var nrc = require("node-run-cmd");
+const menu = require("./menu.json");
 
 class AppFiles {
     static kantarConfigs = `kantarConfigs.json`;
@@ -16,18 +17,19 @@ class AppFiles {
     static exePath = "fis/PrintFis.exe";
 }
 
-let mainWindow;
-
 
 const configJsonFile = JSON.parse(fs.readFileSync(AppFiles.kantarConfigs));
 const kantarName = JSON.parse(fs.readFileSync(AppFiles.kantarName)).kantarName;
 
 if (kantarName == "" || kantarName == undefined)
     throw new Error("KANTAR ADI BULUNAMADI! (HybsKantarName.json)") && app.quit();
-
 const config = configJsonFile[kantarName];
 if (config == undefined) throw new Error("KANTAR KONFİGÜRASYONU BULUNAMADI!") && app.quit();
 if (config.kantarId == undefined) throw new Error("KANTAR ID BULUNAMADI!") && app.quit();
+
+
+let mainWindow;
+
 
 function onReady() {
     mainWindow = new BrowserWindow({
@@ -40,8 +42,8 @@ function onReady() {
         },
         icon: path.join(__dirname, "assets/icon.ico"),
     });
-    mainWindow.setMenu(null);
-    mainWindow.setTitle("HYBS Kocaeli Kantar v" + app.getVersion());
+    Menu.setApplicationMenu(Menu.buildFromTemplate(menu.menuTemp))
+    mainWindow.setTitle("KantarCore v" + app.getVersion());
 
     new Shortcut("Ctrl+F12", function (e) {
         mainWindow.webContents.openDevTools();

@@ -107,7 +107,7 @@
     "ngx-electron": "^2.2.0",
     "ngx-perfect-scrollbar": "^8.0.0",
     "node-run-cmd": "^1.0.1",
-    "notiflix": "^3.2.6",
+    "notiflix": "3.2.6",
     "path": "^0.12.7",
     "rxjs": "~7.4.0",
     "serialport": "^11.0.0",

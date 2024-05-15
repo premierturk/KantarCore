@@ -134,7 +134,7 @@ export class DashboardComponent implements OnInit {
   }
 
   public async BindForm() {
-    this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
+    //this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
     this.ddFirma = new DropdownProps("FirmaAdi", await this.ds.get(`${this.url}/FirmaListesiByCariHesapTuru`));
     this.tasimaKabulListesi = await this.ds.get(`${this.url}/SahaIsletmeciEntegrasyon/TasimaKabulListesi?isAktif=true`);
   }
