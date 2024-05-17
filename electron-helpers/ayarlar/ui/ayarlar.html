@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <script src="./vendor/jquery.min.js"></script>
+    <script src="./vendor/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="./vendor/bootstrap.min.css">
+    <link rel="stylesheet" href="./ayarlar.css">
+    <script src="./vendor/angular.min.js"></script>
+    <script src="./ayarlar.js"></script>
+    <title>Ayarlar</title>
+
+</head>
+
+<body ng-app="myApp" ng-controller="myCtrl" style="height: 750px;">
+    <div class="wrapper">
+        <h1 style="margin-top: 0px; text-align: center;">Ayarlar</h1>
+
+        <h4><i class="glyphicon glyphicon-asterisk"></i> Genel</h4>
+        <div class="row input-row">
+            <label class="col-xs-3 form-label">Kantar Adı:</label>
+            <input type="text" class="form-control input-sm col-xs-9" ng-model="kantarConfig.kantarAdi">
+        </div>
+        <div class="row input-row">
+            <label class="col-xs-3 form-label">Depolama Alan ID:</label>
+            <input type="number" class="form-control input-sm col-xs-9" ng-model="kantarConfig.depolamaAlanId">
+        </div>
+        <div class="row input-row">
+            <label class="col-xs-3 form-label">Service Url:</label>
+            <input type="text" class="form-control input-sm col-xs-9" ng-model="kantarConfig.url">
+        </div>
+
+        <hr>
+
+        <h4><i class="glyphicon glyphicon-asterisk"></i> Yazıcı</h4>
+        <div class="row input-row">
+            <label class="col-xs-3 form-label">Fiş Yazdır ?</label>
+            <input class="form-check-input" type="checkbox" ng-model="kantarConfig.isPrinterOn">
+        </div>
+        <div class="row input-row">
+            <label class="col-xs-3 form-label">Yazıcı Adı:</label>
+            <input type="text" class="form-control input-sm col-xs-9" ng-model="kantarConfig.printerName">
+        </div>
+
+        <hr>
+
+        <h4><i class="glyphicon glyphicon-asterisk"></i> Seri Port</h4>
+        <div class="row input-row">
+            <label class="col-xs-3 form-label">Kantar Var mı?:</label>
+            <input class="form-check-input" type="checkbox" ng-model="kantarConfig.kantar">
+        </div>
+        <div class="row input-row">
+            <label class="col-xs-3 form-label">Kantar Marka:</label>
+            <input type="text" class="form-control input-sm col-xs-9" ng-model="kantarConfig.kantarMarka">
+        </div>
+        <div class="row input-row">
+            <label class="col-xs-3 form-label">COM Port Number:</label>
+            <input type="text" class="form-control input-sm col-xs-9" ng-model="kantarConfig.serialPort.path">
+        </div>
+        <div class="row input-row">
+            <label class="col-xs-3 form-label">AutoOpen:</label>
+            <input class="form-check-input" type="checkbox" ng-model="kantarConfig.serialPort.autoOpen">
+        </div>
+        <div class="row input-row">
+            <label class="col-xs-3 form-label">BaudRate:</label>
+            <input type="number" class="form-control input-sm col-xs-9" ng-model="kantarConfig.serialPort.baudRate">
+        </div>
+        <div class="row input-row">
+            <label class="col-xs-3 form-label">DataBits:</label>
+            <input type="number" class="form-control input-sm col-xs-9" ng-model="kantarConfig.serialPort.dataBits">
+        </div>
+        <div class="row input-row">
+            <label class="col-xs-3 form-label">Parity:</label>
+            <div class="form-check">
+                <input type="radio" class="form-check-input" value="none" ng-model="kantarConfig.serialPort.parity">
+                <label class="form-check-label radio-label">none</label>
+                <input type="radio" class="form-check-input" value="even" ng-model="kantarConfig.serialPort.parity">
+                <label class="form-check-label radio-label">even</label>
+                <input type="radio" class="form-check-input" value="odd" ng-model="kantarConfig.serialPort.parity">
+                <label class="form-check-label radio-label">odd</label>
+                <input type="radio" class="form-check-input" value="mark" ng-model="kantarConfig.serialPort.parity">
+                <label class="form-check-label radio-label">mark</label>
+            </div>
+        </div>
+        <div style="display: flex;justify-content: center;">
+
+            <button class="btn btn-success" ng-click="save()" style="margin-top: 5px;"> Kaydet</button>
+        </div>
+    </div>
+
+</body>
+
+</html>

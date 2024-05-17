@@ -30,10 +30,9 @@ export class AppComponent implements OnInit {
     if (this._electronService.ipcRenderer) {
       this._electronService.ipcRenderer.on('update_available', this.update);
       this._electronService.ipcRenderer.on('print', this.printAll);
-      this._electronService.ipcRenderer.on('KantarId', (event, data) => window.localStorage.setItem("KantarId", data));
-      this._electronService.ipcRenderer.on('KantarAdi', (event, data) => window.localStorage.setItem("KantarAdi", data));
-      this._electronService.ipcRenderer.on('DepolamaAlanId', (event, data) => window.localStorage.setItem("DepolamaAlanId", data));
       this._electronService.ipcRenderer.on('basarili', (event, data) => Notiflix.Notify.success(data));
+      this._electronService.ipcRenderer.on('kantarConfig', (event, data) => window.localStorage.setItem("kantarConfig", data));
+
     }
     window.addEventListener("online", () => {
       setTimeout(() => {

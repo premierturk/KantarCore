@@ -13,6 +13,7 @@ yarn-error.log
 package-lock.json
 .angular/
 .vscode/
+kantarConfig.json
 # IDEs and editors
 .idea/
 .project

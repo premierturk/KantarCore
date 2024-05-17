@@ -1,6 +1,5 @@
 import { Component, OnInit, ChangeDetectorRef, ViewChild, HostListener } from '@angular/core';
 import { ButtonType, DataSource } from 'src/app/service/datasource';
-import { environment } from 'src/environment';
 import { ElectronService } from 'ngx-electron';
 import { DataStateChangeEvent, GridComponent, GridDataResult, RowClassArgs } from '@progress/kendo-angular-grid';
 import { State, aggregateBy, process } from '@progress/kendo-data-query';
@@ -10,6 +9,7 @@ import { AppNetworkStatus } from 'src/app/network-status';
 import * as Notiflix from 'node_modules/notiflix/dist/notiflix-3.2.6.min.js';
 import Swal from 'sweetalert2';
 import { DropDownFilterSettings } from '@progress/kendo-angular-dropdowns';
+import { KantarConfig } from 'src/app/helper/kantar-config';
 
 @Component({
   selector: 'app-dashboard',
@@ -27,7 +27,7 @@ export class DashboardComponent implements OnInit {
   // public Firmalar: any[] = [];
   public selectedItem: any = {};
   static componentInstance: any;
-  private url: string = environment.production ? environment.apiUrl : '/api';
+  private url: string = this.kantarConfig.serviceUrl;
   public ddPlaka: DropdownProps = new DropdownProps();
   public ddFirma: DropdownProps = new DropdownProps();
   public formData: any;
@@ -45,7 +45,7 @@ export class DashboardComponent implements OnInit {
     take: 19,
   };
 
-  constructor(private ds: DataSource, private _electronService: ElectronService, private ref: ChangeDetectorRef) {
+  constructor(private ds: DataSource, private _electronService: ElectronService, private ref: ChangeDetectorRef, public kantarConfig: KantarConfig) {
 
     this.allData = this.allData.bind(this);
     DashboardComponent.componentInstance = this;

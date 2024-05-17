@@ -1,9 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, isDevMode } from '@angular/core';
 import { Router } from '@angular/router';
 import { DataSource } from '../service/datasource';
 import { GradientConfig } from '../app-config';
-import { environment } from '../../environment';
 import httpClient from '../service/http-client';
+import { KantarConfig } from '../helper/kantar-config';
 @Component({
   selector: 'app-giris',
   templateUrl: './giris.component.html',
@@ -16,6 +16,7 @@ export class GirisComponent {
   constructor(
     public ds: DataSource,
     private router: Router,
+    public kantarConfig: KantarConfig
   ) {
     this.gradientConfig = GradientConfig.config;
   }
@@ -33,9 +34,9 @@ export class GirisComponent {
   }
 
 
-  private url: string = environment.production ? environment.apiUrl : "/api";
+  private url: string = this.kantarConfig.serviceUrl;
   isLoading: boolean = false;
-  public logoSrc: string = environment.url + "/HYS/img/logo/logo.png";
+  public logoSrc: string = this.kantarConfig.logoUrl;
   public formData: any = {
     username: '',
     password: '',

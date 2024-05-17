@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { GradientConfig } from '../../../../app-config';
-import { environment } from '../../../../../environment';
+import { KantarConfig } from 'src/app/helper/kantar-config';
 
 @Component({
   selector: 'app-nav-bar',
@@ -12,14 +12,12 @@ export class NavBarComponent implements OnInit {
   public menuClass: boolean;
   public collapseStyle: string;
   public windowWidth: number;
-
-  private url: string = environment.production ? environment.apiUrl : "/api";
-  public logoSrc: string = environment.url + "/HYS/img/logo/logo.png";
+  public logoSrc: string = this.kantarConfig.logoUrl;
 
   @Output() onNavCollapse = new EventEmitter();
   @Output() onNavHeaderMobCollapse = new EventEmitter();
 
-  constructor() {
+  constructor(public kantarConfig: KantarConfig) {
     this.gradientConfig = GradientConfig.config;
     this.menuClass = false;
     this.collapseStyle = 'none';
