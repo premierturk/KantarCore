@@ -3,7 +3,11 @@
         style="padding: 0px 5px">
         <div class="row p-1">
             <div class="row col-md-6 col-sm-4">
-                <div class="col-md-4 vertical-text-center">
+                <div title="{{this.formData.IsOffline ==true ?  'Offline': 'Online'}} "
+                    [ngStyle]="{'background-color':this.formData.IsOffline ==true  ?  '#fd0707': '#1ce61c'}"
+                    style="margin-left: 2%;width: 4%;border: 1px solid black;border-radius: 70%">
+                </div>
+                <div class="col-md-3 vertical-text-center">
                     <label class="pt-1 mb-0">Başlangıç Tarihi :</label>
                 </div>
                 <div class="col-md-8">
@@ -126,7 +130,13 @@
             <kendo-grid-column title="Firma Adı" field="FirmaAdi"
                 [style]="{ 'white-space': 'nowrap' }"></kendo-grid-column>
 
-            <kendo-grid-column [width]="100" title="Plaka" field="PlakaNo"></kendo-grid-column>
+            <kendo-grid-column [width]="100" title="Plaka" field="PlakaNo">
+                <ng-template kendoGridCellTemplate let-dataItem>
+                    <span kendoTooltip title="{{dataItem?.sonuc}}">
+                        {{dataItem?.PlakaNo}}
+                    </span>
+                </ng-template>
+            </kendo-grid-column>
 
             <kendo-grid-column title="Dara(Kg)" field="Dara" [style]="{ 'white-space': 'nowrap' }"></kendo-grid-column>
 
@@ -162,7 +172,7 @@
             <div class="mb-2">
                 <label>Plaka</label>
 
-                <kendo-dropdownlist [size]="'small'" [kendoDropDownFilter]="filterSettings"
+                <kendo-dropdownlist [disabled]="plakaDisable" [size]="'small'" [kendoDropDownFilter]="filterSettings"
                     [popupSettings]="{ appendTo: 'component' }" [filterable]="true" class="width"
                     [data]="ddPlaka.f_list" [textField]="ddPlaka.displayField" [valueField]="'AracId'"
                     (filterChange)="ddPlaka.onChange($event)" [valuePrimitive]="true" [(ngModel)]="formData.AracId"
@@ -210,9 +220,11 @@
         </div>
         <div class="modal-footer" style="justify-content: space-evenly">
             <app-button [buttonType]="ButtonType.Kaydet" (click)="save()"
-                [isdisabled]="formData.FirmaAdi==''"></app-button>
-            <button class="btn btn-warning" (click)="daraGuncelle()"
+                [isdisabled]="formData.FirmaAdi=='' || !aracTakipKontrol"></app-button>
+            <!-- Kocaeli'nin il id si 1 olduğundan Dara Güncelleme Gözükmeyecek -->
+            <button class="btn btn-warning" (click)="daraGuncelle()" *ngIf="user.ilid!=1"
                 [disabled]="formData.Tonaj<1000 || formData.Tonaj>25000">
+
                 <i class="fa-truck far fas pr-2"></i>Dara Güncelle
             </button>
         </div>

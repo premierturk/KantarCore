@@ -21,6 +21,7 @@ class Helper {
       backdrop: 'static',
       windowClass: 'animated slideInDown',
       centered: false,
+      keyboard: false
     });
     return modalRef;
   }

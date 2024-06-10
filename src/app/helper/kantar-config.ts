@@ -17,13 +17,14 @@ export class KantarConfig {
 
     constructor() {
         var config = JSON.parse(localStorage.getItem("kantarConfig"));
-
+        debugger
         for (const [key, value] of Object.entries(config)) {
             if (key != "serialPort") this[key] = value;
             else this[key] = new SerialPort(value);
         }
         this.logoUrl = this.url + "/HYS/img/logo/logo.png";
         this.serviceUrl = isDevMode() ? "/api" : `${this.url}/HYS.WebApi/api`;
+        console.log(this.serviceUrl);
     }
 }
 

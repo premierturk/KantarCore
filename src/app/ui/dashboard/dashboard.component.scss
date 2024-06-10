@@ -25,3 +25,7 @@ kendo-grid-column {
 .k-grid tr.localData {
     background-color: #fce28f !important;
 } 
+::ng-deep .k-grid tr.offline  {
+    background-color:rgb(240, 42, 42) !important;
+    color: white;
+} 

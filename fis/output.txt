@@ -1,12 +1,12 @@
-DEBUG Kantar  
+  
 
 Tartı No            : 
-Belge No          : 1-2023
-Plaka                 : 41 PT 1002
-İşlem Tarihi      : 03.05.2024 17:05
+Belge No          : 6-2024
+Plaka                 : 41 PT 2005
+İşlem Tarihi      : Sun Jun 09 2024 16:48:41 GMT+0300 (GMT+03:00)
 Firma Adı          : BAHADIR HAFRİYAT 
 
 
-1.Tartı                : 6300 kg
-2.Tartı                : 10180 kg
-Net                     : 3880 kg
+1.Tartı                : 2 kg
+2.Tartı                : 25000 kg
+Net                     : 24998 kg

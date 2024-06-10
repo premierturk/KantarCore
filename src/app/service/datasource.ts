@@ -25,6 +25,7 @@ export class DataSource {
 
   async login(url: string, data: any) {
     try {
+      debugger
       const resp = await httpClient.post(url, data);
       if (resp.status == 200) {
         Notiflix.Notify.success('Hoşgeldiniz');
@@ -85,16 +86,24 @@ export class DataSource {
   }
 
   async postNoMess(url: string, data: any) {
+
+
+
     try {
       var success = false;
       const resp = await httpClient.post(url, data);
+
       if (resp.status == 200) {
         success = true;
       } else {
       }
       return { success: success, data: resp.data };
     } catch (err) {
-      return { success: false };
+      data.sonuc = err.response.data;
+
+      return {
+        success: false
+      };
     }
   }
 
@@ -148,9 +157,12 @@ export class DataSource {
 
   async offlinePost(url: string, data: any) {
     try {
+
+
       //offline requestlere eklenmesi
       var requestList = JSON.parse(window.localStorage.getItem("offlineRequests"));
       if (requestList == null) requestList = [];
+      data.sonuc = "Sunucya Gönderilemedi";
       requestList.push({ url: url, data: data, type: "POST" });
       window.localStorage.setItem("offlineRequests", JSON.stringify(requestList));
 
@@ -188,7 +200,7 @@ export class DataSource {
         requestList[requestList.length - 1].data = fullData;
         window.localStorage.setItem("offlineRequests", JSON.stringify(requestList));
 
-        dokumList.push(fullData);
+        // dokumList.push(fullData);
         dokumList = dokumList.sort(function (a, b) {
           return new Date(b.IslemTarihi).getTime() - new Date(a.IslemTarihi).getTime();
         });
