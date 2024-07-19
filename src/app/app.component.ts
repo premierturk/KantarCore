@@ -11,7 +11,8 @@ import { UpdateModalComponent } from './ui/update-modal/update-modal.component';
 import { OfflineRequestsComponent } from './ui/offline-requests/offline-requests.component';
 import { DashboardComponent } from './ui/dashboard/dashboard.component';
 import { AppNetworkStatus } from './network-status';
-
+import { enableProdMode, isDevMode } from '@angular/core';
+import { environment } from 'src/environments/environment';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -59,13 +60,19 @@ export class AppComponent implements OnInit {
 
       const modalRef = this.help.openModal(this.modalService, OfflineRequestsComponent);
       modalRef.result.then(() => {
-        DashboardComponent.componentInstance.ngOnInit();
+        this.ngOnInit();
 
       });
     }
   }
 
   ngOnInit() {
+
+    if (environment.production) {
+      enableProdMode();
+    }
+
+
     const userStorage = JSON.parse(window.localStorage.getItem('user'));
     if (userStorage == null || userStorage === 'null' || userStorage == undefined) {
       this.rout.navigate(['giris']);

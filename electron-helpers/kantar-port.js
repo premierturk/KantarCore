@@ -11,6 +11,8 @@ var printToAngular;
 var currMessage = "";
 var messages = [];
 
+var datas = [];
+
 function initializeMainJsVariables() {
   const mainJs = require("../main");
   mainWindow = mainJs.mainWindow;
@@ -62,10 +64,8 @@ class KantarPort {
       return msg.replaceAll("\u0002", "");
     } else if (AppConfig.kantarMarka == "tunaylarKantar") {
       try {
-        msg = msg
-          .replaceAll("!10", "")
-          .replaceAll("000000", "")
-          .replaceAll(" ", "");
+        msg = msg.trim().split(" ")[1];
+
         return parseInt(msg);
       } catch (error) {
         console.log("Kantar verisi int'e çevrilemedi");
@@ -89,12 +89,69 @@ class KantarPort {
   }
 
   static onData(data) {
+    // console.log(data);
+    // printToAngular(data);
+    // debugger;
+
+    // for (let i = 0; i < data.length; i++) {
+    //   datas.push(data[i]);
+    // }
+
+    // printToAngular(datas);
+
+    // for (let index = 0; index < datas.length; index++) {
+
+    //    if(
+    //     array[index] == 2 &&
+    //     array[index+1] == 33 &&
+    //     array[index+2] == 49
+    //    )
+
+    // }
+
+    // if (datas[0] == 2 && datas[1] == 33 && datas[2] == 49 && datas[20] == 13) {
+    //   //end
+
+    //   var k = [];
+    //   k.push(datas[5]);
+    //   k.push(datas[6]);
+    //   k.push(datas[7]);
+    //   k.push(datas[8]);
+    //   k.push(datas[9]);
+    //   k.push(datas[10]);
+
+    //   var tonaj = Buffer.from(k).toString();
+
+    //   datas = [];
+    //   messages.push(parseInt(tonaj));
+
+    //   if (messages.length == 5) {
+    //     let allSame = [...new Set(messages)].length == 1;
+    //     if (allSame) {
+    //       mainWindow.webContents.send("kantar", [messages[0]]);
+    //       console.log("Data sended => " + messages[0]);
+    //       messages = [];
+    //     } else {
+    //       messages = messages.slice(1);
+    //     }
+    //   }
+    //   tonaj = "";
+    //   console.log("TONAJ = > " + tonaj);
+    //   printToAngular("TONAJ = > " + tonaj);
+    // } else {
+    //   console.log("TONAJ ELSE = > " + data);
+    //   printToAngular("TONAJ ELSE = > " + data);
+    //   for (let index = 0; index < datas.length; index++) {
+    //     if (datas[index] == 13) datas = [];
+    //   }
+    // }
+
     currMessage += Buffer.from(data).toString();
 
-    console.log("First Read =>" + currMessage);
-    printToAngular("First Read =>" + currMessage);
+    var firstread = currMessage;
+    // console.log("First Read =>" + currMessage);
+    // printToAngular("First Read =>" + currMessage);
 
-    // !currMessage.endsWith("\\r") kontrolünü geçici olarak kaldırdık
     if (
       !currMessage.endsWith("\\r") && //fake data from hercules
       !currMessage.endsWith("\r") && //other kantars
@@ -106,8 +163,9 @@ class KantarPort {
     if (AppConfig.kantarMarka == "tamTarti" && !currMessage.includes("\r"))
       return;
 
-    console.log("Completed Msg =>" + currMessage);
-    printToAngular("Completed Msg =>" + currMessage);
+    var complete = currMessage;
+    // console.log("Completed Msg =>" + currMessage);
+    // printToAngular("Completed Msg =>" + currMessage);
 
     currMessage = currMessage
       .replaceAll("\\r", "")
@@ -119,14 +177,32 @@ class KantarPort {
       currMessage = "";
       return;
     }
-
-    console.log("Before Parser =>" + currMessage);
-    printToAngular("Before Parser =>" + currMessage);
+    var before = currMessage;
+    // console.log("Before Parser =>" + currMessage);
+    // printToAngular("Before Parser =>" + currMessage);
 
     currMessage = KantarPort.dataParser(currMessage); //parse kantar data
-
-    console.log("After Parser =>" + currMessage);
-    printToAngular("After Parser =>" + currMessage);
+    var after = currMessage;
+    // console.log(
+    //   "First Read =>" +
+    //     firstread +
+    //     "Completed Msg =>" +
+    //     complete +
+    //     " Before Parser =>" +
+    //     before +
+    //     " After Parser =>" +
+    //     after
+    // );
+    // printToAngular(
+    //   "First Read =>" +
+    //     firstread +
+    //     "Completed Msg =>" +
+    //     complete +
+    //     " Before Parser =>" +
+    //     before +
+    //     " After Parser =>" +
+    //     after
+    // );
 
     messages.push(currMessage);
 

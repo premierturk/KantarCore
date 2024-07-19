@@ -219,8 +219,12 @@
             </div>
         </div>
         <div class="modal-footer" style="justify-content: space-evenly">
-            <app-button [buttonType]="ButtonType.Kaydet" (click)="save()"
-                [isdisabled]="formData.FirmaAdi=='' || !aracTakipKontrol"></app-button>
+            <button class="btn btn-success" (click)="save()" [disabled]="formData.FirmaAdi=='' || !aracTakipKontrol">
+                Kaydet
+            </button>
+
+            <!-- <app-button [buttonType]="ButtonType.Kaydet" (click)="save()"
+                [isdisabled]="formData.FirmaAdi=='' || !aracTakipKontrol"></app-button> -->
             <!-- Kocaeli'nin il id si 1 olduğundan Dara Güncelleme Gözükmeyecek -->
             <button class="btn btn-warning" (click)="daraGuncelle()" *ngIf="user.ilid!=1"
                 [disabled]="formData.Tonaj<1000 || formData.Tonaj>25000">
@@ -229,4 +233,6 @@
             </button>
         </div>
     </app-card>
+
 </div>
+<div *ngIf="ds['loading']" class="k-i-loading"></div>

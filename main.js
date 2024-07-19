@@ -8,7 +8,7 @@ const AntenTcp = require("./electron-helpers/anten-tcp");
 const KantarPort = require("./electron-helpers/kantar-port");
 const FisPrinter = require("./electron-helpers/fis-printer");
 const { ayarlarMenu } = require("./electron-helpers/ayarlar/ayarlarMenu");
-
+var ping = require("ping");
 let mainWindow;
 const printToAngular = (message) =>
   mainWindow.webContents.send("print", message);
@@ -26,7 +26,7 @@ function onReady() {
   });
 
   mainWindow.setMenu(null);
-  mainWindow.setTitle("KantarCore v" + app.getVersion());
+  mainWindow.setTitle("HYBS_Kantar v" + app.getVersion());
   mainWindow.maximize();
 
   Menu.setApplicationMenu(ayarlarMenu);
@@ -44,7 +44,10 @@ function onReady() {
   KantarPort.start();
   AntenTcp.createServer();
 
-  setTimeout(() => autoUpdater.checkForUpdates(), 4000);
+  setTimeout(() => {
+    autoUpdater.checkForUpdates();
+    // pingHybs();
+  }, 4000);
 }
 //app
 app.on("ready", onReady);
@@ -84,3 +87,11 @@ autoUpdater.on("update-downloaded", () => {
 });
 
 autoUpdater.on("error", (message) => printToAngular(message));
+
+// function pingHybs() {
+//   setInterval(async () => {
+//     ping.sys.probe(AppConfig.url.split("://")[1], function (isAlive) {
+//       mainWindow.webContents.send("pingHybs", !isAlive);
+//     });
+//   }, 60000);
+// }

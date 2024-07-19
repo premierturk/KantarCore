@@ -1,6 +1,5 @@
-
 const AppConfig = require("./app-config");
-const AppFiles = require('./app-files');
+const AppFiles = require("./app-files");
 const fs = require("fs");
 var nrc = require("node-run-cmd");
 
@@ -9,46 +8,58 @@ var mainWindow;
 var printToAngular;
 
 function initializeMainJsVariables() {
-    const mainJs = require('../main');
-    mainWindow = mainJs.mainWindow;
-    printToAngular = mainJs.printToAngular;
+  const mainJs = require("../main");
+  mainWindow = mainJs.mainWindow;
+  printToAngular = mainJs.printToAngular;
 }
 
 class FisPrinter {
-    static printFis(event, data) {
-        if (!AppConfig.isPrinterOn) return;
-        initializeMainJsVariables();
-        try {
-            printToAngular("ONPRİNT");
-            data = data[0];
+  static printFis(event, data) {
+    if (!AppConfig.isPrinterOn) return;
+    initializeMainJsVariables();
+    try {
+      printToAngular("ONPRİNT");
+      data = data[0];
 
-            printToAngular(data);
-            var fisTxt = fs.readFileSync(AppFiles.tempTxt, "utf-8");
+      printToAngular(data);
 
-            for (const [key, value] of Object.entries(data))
-                fisTxt = fisTxt.replaceAll(`{{${key}}}`, value ?? "");
+      var fisTxt = fs.readFileSync(AppFiles.tempTxt, "utf-8");
 
-            fs.writeFile(AppFiles.outTxt, fisTxt, (err, res) => {
-                if (err) {
-                    printToAngular(err);
-                    return;
-                }
-                const command =
-                    AppFiles.exePath + `"${AppConfig.printerName}" "${AppFiles.outTxt}"`;
+      for (const [key, value] of Object.entries(data))
+        fisTxt = fisTxt.replaceAll(`{{${key}}}`, value ?? "");
 
-                nrc.run(command).then(
-                    function (exitCodes) {
-                        printToAngular("printed  " + exitCodes);
-                    },
-                    function (err) {
-                        printToAngular("Command failed to run with error: " + err);
-                    }
-                );
-            });
-        } catch (error) {
-            printToAngular(error);
+      fs.copyFile(AppFiles.tempTxt, AppFiles.outTxt, (err, res) => {
+        if (err) {
+          printToAngular(err);
+          return;
         }
+
+        fs.writeFile(AppFiles.outTxt, fisTxt, "utf8", function (err) {
+          if (err) return console.log(err);
+        });
+
+        //const command = AppFiles.exePath + `"${AppConfig.printerName}" "${AppFiles.outTxt}"`;
+        printToAngular("Temp yolu: " + AppFiles.tempTxt);
+        console.log("Temp yolu: " + AppFiles.tempTxt);
+        printToAngular("Out yolu: " + AppFiles.outTxt);
+        console.log("Out yolu: " + AppFiles.outTxt);
+        const command = `notepad.exe /p '${AppFiles.outTxt}' '${AppConfig.printerName}'`;
+        console.log(command);
+        printToAngular(command);
+
+        nrc.run(command).then(
+          function (exitCodes) {
+            printToAngular("printed  " + exitCodes);
+          },
+          function (err) {
+            printToAngular("Command failed to run with error: " + err);
+          }
+        );
+      });
+    } catch (error) {
+      printToAngular(error);
     }
+  }
 }
 
 module.exports = FisPrinter;

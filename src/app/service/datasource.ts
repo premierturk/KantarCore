@@ -25,7 +25,6 @@ export class DataSource {
 
   async login(url: string, data: any) {
     try {
-      debugger
       const resp = await httpClient.post(url, data);
       if (resp.status == 200) {
         Notiflix.Notify.success('Hoşgeldiniz');
@@ -57,6 +56,25 @@ export class DataSource {
       return err;
     }
   }
+
+  async getResponse(url: string) {
+    const localStorageName = url.split("?")[0].split("/").pop();
+    if (AppNetworkStatus.isOffline) return JSON.parse(window.localStorage.getItem(localStorageName));
+    try {
+      const resp = await httpClient.get(url);
+
+      if (resp.status == 200) {
+        window.localStorage.setItem(localStorageName, JSON.stringify(resp.data));
+      } else {
+        Notiflix.Notify.failure(resp.data.toString());
+      }
+      return resp;
+    } catch (err) {
+      this.handleErrorResponse(err);
+      return err;
+    }
+  }
+
 
   // async getNoMess(url: string) {
   //   try {
@@ -158,7 +176,6 @@ export class DataSource {
   async offlinePost(url: string, data: any) {
     try {
 
-
       //offline requestlere eklenmesi
       var requestList = JSON.parse(window.localStorage.getItem("offlineRequests"));
       if (requestList == null) requestList = [];
@@ -170,18 +187,23 @@ export class DataSource {
       if (url.includes("/kantar/hafriyatkabul/KabulBelgesi")) {
         //print işlemi için donulecek data 
         const arac = JSON.parse(window.localStorage.getItem("araclistesi")).find(a => a.AracId == data.AracId);
-        const kantarAdi = window.localStorage.getItem("KantarAdi");
+        const kantarAdi = JSON.parse(window.localStorage.getItem("kantarConfig")).kantarAdi;
 
         const fisData = {
           KantarAdi: kantarAdi,
           HafriyatDokumId: null,
           BelgeNo: data.BelgeNo,
           PlakaNo: arac.PlakaNo,
-          IslemTarihi: moment(new Date()).format("DD.MM.yyyy HH:mm"),
+          IslemTarihi: moment(new Date(data.IslemTarihi)).format("DD.MM.yyyy HH:mm"),
           FirmaAdi: arac.FirmaAdi,
           Dara: arac.Dara,
           Tonaj: data.Tonaj,
-          NetTonaj: data.Tonaj - arac.Dara
+          NetTonaj: data.Tonaj - arac.Dara,
+          Tutar: 0,
+          Bakiye: 0,
+          BelgeMiktari: 0,
+          BelgeTopDok: 0,
+          BelgeKalMik: 0,
         };
 
         //localdeki dokum listesini guncelleme
@@ -200,7 +222,7 @@ export class DataSource {
         requestList[requestList.length - 1].data = fullData;
         window.localStorage.setItem("offlineRequests", JSON.stringify(requestList));
 
-        // dokumList.push(fullData);
+        // dokumList.push(fullData);  (dashboard da offline kayıtlar eklendiği için kaldırılmıştır)
         dokumList = dokumList.sort(function (a, b) {
           return new Date(b.IslemTarihi).getTime() - new Date(a.IslemTarihi).getTime();
         });

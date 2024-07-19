@@ -1,6 +1,6 @@
 {
   "/api": {
-    "target": "http://10.210.210.95:20237/HYS.WebApi",
+    "target": "http://10.210.210.95:2023/HYS.WebApi",
     "secure": false
   }
 }

@@ -37,8 +37,8 @@ class AppConfig {
     }
 
     setTimeout(() => sendToAngular(config), 2000);
-    // var jsonConfig = JSON.parse(config);
-    for (const [key, value] of Object.entries(config)) {
+    var jsonConfig = JSON.parse(config);
+    for (const [key, value] of Object.entries(jsonConfig)) {
       if (key != "serialPort") this[key] = value;
       else this[key] = new SerialPortConfigs(value);
     }

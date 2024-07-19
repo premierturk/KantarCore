@@ -14,6 +14,7 @@ import helper from 'src/app/service/helper';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { SahaSecimiComponent } from './saha-secimi/saha-secimi.component';
 
+
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
@@ -47,22 +48,28 @@ export class DashboardComponent implements OnInit {
   public aracTakipKontrol: boolean = true;
   public raporTuru: any = { kamufis: true, dokumfisi: true, ozel: true, manueldokum: true, gerikazanim: true, evsel: true, sanayi: true };
   public user = JSON.parse(window.localStorage.getItem('user'));
+  public setinterval;
+  public hybsPing;
   // public depolamaAlanId = window.localStorage.getItem('DepolamaAlanId');
+
+
   public state: State = {
     skip: 0,
     take: 19,
   };
 
-  constructor(private ds: DataSource, private _electronService: ElectronService, private ref: ChangeDetectorRef, public kantarConfig: KantarConfig,
+  constructor(public ds: DataSource, private _electronService: ElectronService, private ref: ChangeDetectorRef, public kantarConfig: KantarConfig,
     public help: helper,
     public modalService: NgbModal
   ) {
-
     this.allData = this.allData.bind(this);
     DashboardComponent.componentInstance = this;
+
     if (this._electronService.ipcRenderer) {
       this._electronService.ipcRenderer.on('kantar', this.onDataKantar);
       this._electronService.ipcRenderer.on('tcp', this.onDataTcp);
+      // this._electronService.ipcRenderer.on('pingHybs', this.pingOffline);
+
     }
     window.addEventListener("online", () => {
       this.formData.IsOffline = false;
@@ -71,6 +78,9 @@ export class DashboardComponent implements OnInit {
     window.addEventListener("offline", () => {
       this.formData.IsOffline = true;
     });
+
+
+
   }
 
 
@@ -85,13 +95,18 @@ export class DashboardComponent implements OnInit {
   }
 
 
+  ngOnDestroy() {
+    clearInterval(this.setinterval);
+    clearInterval(this.hybsPing);
+  }
+
+
 
   @HostListener('window:keydown', ['$event'])
   keyEvent(event: KeyboardEvent) {
     if (event.key == 'Enter') {
       console.log(this.barcode);
       this.belgeNoFromBarcode(this.barcode);
-
 
       this.barcode = '';
       return;
@@ -100,59 +115,68 @@ export class DashboardComponent implements OnInit {
   }
 
   public async belgeNoFromBarcode(code) {
-    code = code.replaceAll("Shift", "");
-    this.formData.BarkodNo = code;
-    var barkodKontrol = code.replaceAll("*", "-");
-    if (barkodKontrol.startsWith("KF-") && barkodKontrol.endsWith("-KF"))   // KAMU FİŞ
+    var barkodKontrol = code.replaceAll("Shift", "").replaceAll("Control", "").replaceAll("*", "-").toUpperCase();
+
+    if (barkodKontrol.includes("KF-") && barkodKontrol.includes("-KF"))   // KAMU FİŞ
     {
       this.barkodTuru = "Kamu Fiş";
-
+      var indexStart = barkodKontrol.indexOf("KF-");
+      var indexEnd = barkodKontrol.indexOf("-KF");
+      var fisTeslimId = barkodKontrol.substring(indexStart, indexEnd + 3)
       if (!this.formData.IsOffline) {
 
-        var fisTeslimId = barkodKontrol.substring(3, 9);
-        var kamuFis = await this.ds.post(`${this.url}/kantar/KamuFisKontrol`, { "FisTeslimId": fisTeslimId });
-        this.formData.FirmaAdi = kamuFis.data.FirmaAdi;
-        this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kamuFis.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
-        this.formData.BelgeNo = barkodKontrol;
-        this.formData.Dara = 0;
-        this.formData.AracId = undefined;
+        this.formData.BelgeNo = fisTeslimId;
+
+        var kamuFis = await this.ds.post(`${this.url}/kantar/KamuFisKontrol`, { "FisTeslimId": parseInt(fisTeslimId.split('-')[1]) });
+        if (kamuFis.success) {
+          this.formData.FirmaAdi = kamuFis.data.FirmaAdi;
+          this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kamuFis.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
+          this.formData.Dara = 0;
+          this.formData.AracId = undefined;
+        }
+        else {
+          this.ddPlaka.f_list = [];
+          this.formData.FirmaAdi = '';
+          this.formData.Dara = 0;
+          this.formData.AracId = undefined;
+        }
       }
       else {
-        var kamuFisListesi = this.kamuFisListesi.filter(x => x.FisTeslimId == fisTeslimId)[0];
+        var kamuFisListesi = this.kamuFisListesi.filter(x => x.FisTeslimId == fisTeslimId.split('-')[1])[0];
         if (kamuFisListesi != undefined && kamuFisListesi != null) {
-          this.formData.BelgeNo = barkodKontrol;
           this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kamuFisListesi.Araclar.some(a => a.AracId == x.AracId))
           this.formData.FirmaAdi = this.ddFirma.f_list.filter(x => x.FirmaId == kamuFisListesi.FirmaId)[0].FirmaAdi;
           this.formData.Dara = 0;
           this.formData.AracId = undefined;
 
         }
+        else {
+          this.formData.FirmaAdi = '';
+          this.ddPlaka.f_list = [];
+          Notiflix.Notify.failure("HATALI/KULLANILMIŞ KAMUFİŞ NO")
+        }
+        this.formData.BelgeNo = fisTeslimId;
 
       }
     }
-    else if (barkodKontrol.includes("-") && barkodKontrol.includes("A")) {    // KABUL BELGESİ
+    else if (barkodKontrol.includes("-")) {    // KABUL BELGESİ
       this.barkodTuru = "Kabul Belgesi";
 
-      var barkodBelge = this.getBelgeNo(code);
-      barkodBelge = barkodBelge.replace("*", "-")
+      var barkodBelge = this.getBelgeNo(barkodKontrol);
       var tasimaKabulKontrol = this.tasimaKabulListesi.filter(x => x.BelgeNo == barkodBelge)[0];
-
+      this.formData.BelgeNo = barkodBelge;
       if (tasimaKabulKontrol != undefined && tasimaKabulKontrol != null) {
-        this.formData.BelgeNo = barkodBelge;
         this.ddPlaka.f_list = this.ddPlaka.list.filter(x => tasimaKabulKontrol.Araclar.some(a => a.PlakaNo == x.PlakaNo))
         this.formData.FirmaAdi = tasimaKabulKontrol.FirmaAdi;
         this.formData.Dara = 0;
         this.formData.AracId = undefined;
-
-        // setTimeout(() => {
-        //   this.save();
-        // }, 3000);
-
-        // return barkodBelge;
+        // this.formData.BarkodNo = barkodKontrol;
 
       }
       else {
         this.formData.FirmaAdi = '';
+        this.formData.Dara = 0;
+        this.formData.AracId = undefined;
         Notiflix.Notify.failure('Belge Bulunamadı.');
       }
     }
@@ -187,16 +211,21 @@ export class DashboardComponent implements OnInit {
           this.formData.BelgeNo = barkodKontrol;
           this.ddPlaka.f_list = this.ddPlaka.list.filter(x => nakitDokum.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
           this.formData.FirmaAdi = nakitDokum.data.FirmaAdi;
+          this.formData.Dara = 0;
+          this.formData.AracId = undefined;
         }
       }
 
 
 
     }
+    this.formData.BarkodNo = barkodKontrol;
 
   }
   getBelgeNo(readed: any) {
-    var index = readed.indexOf("*");
+
+
+    var index = Math.max(readed.indexOf("*"), readed.indexOf("-"));
     if (index < 0) return "";
 
     var left = "";
@@ -215,21 +244,38 @@ export class DashboardComponent implements OnInit {
     const arac = this.ddPlaka.list.filter((x) => x.AracId == aracId)[0];
     if (arac != undefined && arac != null) {
 
-      if (!arac.AracTakipVarmi) {
-        Notiflix.Notify.failure("Araç Takip Sözleşmesi Yoktur.")
-        this.aracTakipKontrol = false;
+
+      if (this.barkodTuru == "Nakit Döküm" && this.formData.Tonaj > 80000) {
+        if (!arac.AracTakipVarmi) {
+          Notiflix.Notify.failure("Araç Takip Sözleşmesi Yoktur.")
+          this.aracTakipKontrol = false;
+          return;
+
+        }
+        else if (arac.TasimaIzinAktif == "Pasif") {
+          Notiflix.Notify.failure("Taşıma İzin Süresi Dolmuştur")
+          this.aracTakipKontrol = false;
+          return;
+
+        }
 
       }
-      else if (arac.TasimaIzinAktif == "Pasif") {
-        Notiflix.Notify.failure("Taşıma İzin Süresi Dolmuştur")
-        this.aracTakipKontrol = false;
+      else if (this.barkodTuru != "Nakit Döküm") {
+        if (!arac.AracTakipVarmi) {
+          Notiflix.Notify.failure("Araç Takip Sözleşmesi Yoktur.")
+          this.aracTakipKontrol = false;
+          return;
+
+        }
+        else if (arac.TasimaIzinAktif == "Pasif") {
+          Notiflix.Notify.failure("Taşıma İzin Süresi Dolmuştur")
+          this.aracTakipKontrol = false;
+          return;
+        }
 
       }
-      else {
-        this.formData.AracId = arac.AracId;
-        this.aracTakipKontrol = true;
-
-      }
+      this.formData.AracId = arac.AracId;
+      this.aracTakipKontrol = true;
       this.formData.Dara = arac.Dara;
 
       // setTimeout(() => {
@@ -242,16 +288,27 @@ export class DashboardComponent implements OnInit {
   public async BindForm() {
     this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
     this.ddFirma = new DropdownProps("FirmaAdi", await this.ds.get(`${this.url}/FirmaListesiByCariHesapTuru`));
-    this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
     this.kamuFisListesi = await this.ds.get(`${this.url}/kantar/KamuFisListesi`);
+    this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
     this.depolamaAlani = await this.ds.get(`${this.url}/kantar/DepolamaAlani?DepolamaAlaniId=${this.kantarConfig.depolamaAlanId}`);
     if (this.depolamaAlani.DepoalamaAlani.OgsAktif) {
       this.plakaDisable = true;
     }
-    setInterval(async () => {
+
+    this.setinterval = setInterval(async () => {
       this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
+      this.kamuFisListesi = await this.ds.get(`${this.url}/kantar/KamuFisListesi`);
     }, 60000);
 
+    this.hybsPing = setInterval(async () => {
+      var HybsErisim = await this.ds.getResponse(`${this.url}/kantar/OfflineControl`);
+      if (HybsErisim.status != 200) {
+        this.formData.IsOffline = true;
+      }
+      else {
+        this.formData.IsOffline = false;
+      }
+    }, 120000);
   }
 
 
@@ -263,8 +320,9 @@ export class DashboardComponent implements OnInit {
     if (this.basTar != undefined && this.bitTar != undefined) {
       var query = this.user.buyuksehirid + "#" + this.basTar.toUTCString() + "#" + this.bitTar.toUTCString() + "#" + this.formData.firmaId + "#" + this.kantarConfig.depolamaAlanId + "#" + "" + "#" + this.raporTuru.kamufis + "#" + this.raporTuru.dokumfisi + "#" + this.raporTuru.ozel + "#" + this.raporTuru.manueldokum + "#" + this.raporTuru.gerikazanim + "#" + "Hayir" + "#" + this.raporTuru.evsel + "#" + this.raporTuru.sanayi + "#" + this.user.userid;
 
+
       this.list = await this.ds.get(`${this.url}/ParaYukleme/GetRaporMulti?q=${btoa(query)}`);
-      var offlineKayit = JSON.parse(window.localStorage.getItem('offlineRequests')) // Çift kayıt atıyo
+      var offlineKayit = JSON.parse(window.localStorage.getItem('offlineRequests')) // Offline kayıtların grid de sürekli gösteriminin sağlanması
       if (offlineKayit != null) {
         offlineKayit.forEach(element => {
           element.data.sort = 0;
@@ -272,7 +330,10 @@ export class DashboardComponent implements OnInit {
         });
       }
       this.list = this.list.sort(function (a, b) {
-        return (new Date(b.IslemTarihi).getTime() - new Date(a.IslemTarihi).getTime() && a.sort - b.sort);
+
+        if (b.sort == a.sort) return new Date(b.IslemTarihi).getTime() - new Date(a.IslemTarihi).getTime();
+        else return a.sort - b.sort;
+
       });
       this.view = process(this.list, this.state);
       this.total = aggregateBy(this.list, [{ field: 'Tonaj', aggregate: 'sum' }, { field: 'Tutar', aggregate: 'sum' }]);
@@ -321,21 +382,26 @@ export class DashboardComponent implements OnInit {
 
 
   public responseToPrint(data) {
+    console.log(data)
     if (data == null) return;
-
     var print = data; //offline request response
 
     if (data.fisno!) { //web service response
       print = {
-        KantarAdi: window.localStorage.getItem("KantarAdi"),
+        KantarAdi: JSON.parse(window.localStorage.getItem("kantarConfig")).kantarAdi,
         HafriyatDokumId: data.fisno,
-        BelgeNo: data.belgeno,
-        PlakaNo: data.plakano,
         IslemTarihi: data.islemtarihi + " " + data.islemsaat,
         FirmaAdi: data.firma,
-        Dara: data.dara,
+        PlakaNo: data.plakano,
         Tonaj: data.tonaj,
+        Dara: data.dara,
         NetTonaj: data.net,
+        Tutar: data.tutar,
+        Bakiye: data.bakiye - data.tutar,
+        BelgeNo: data.belgeno,
+        BelgeMiktari: data.belgemik,
+        BelgeTopDok: data.belgetopdok,
+        BelgeKalMik: data.belgekalmik,
       }
     }
 
@@ -348,9 +414,10 @@ export class DashboardComponent implements OnInit {
 
   public gridToPrint(data) {
     if (data == null) return;
+    else if (data.BelgeNo.includes("KF")) return;
 
     var print = {
-      KantarAdi: window.localStorage.getItem("KantarAdi"),
+      KantarAdi: JSON.parse(window.localStorage.getItem("kantarConfig")).kantarAdi,
       HafriyatDokumId: data.HafriyatDokumId,
       BelgeNo: data.BelgeNo,
       PlakaNo: data.PlakaNo,
@@ -359,6 +426,11 @@ export class DashboardComponent implements OnInit {
       Dara: data.Dara,
       Tonaj: data.Tonaj + data.Dara,
       NetTonaj: data.Tonaj,
+      Tutar: data.Tutar,
+      Bakiye: data.Bakiye - data.Tutar,
+      BelgeMiktari: data.BelgeMiktari,
+      BelgeTopDok: data.ToplamDokumMiktari,
+      BelgeKalMik: data.ToplamDokumMiktari - data.BelgeMiktari,
     };
     if (this._electronService.ipcRenderer)
       this._electronService.ipcRenderer.send('onprint', [print]);
@@ -394,6 +466,13 @@ export class DashboardComponent implements OnInit {
     component.plakaChange(arac.AracId);
 
   }
+
+
+  // pingOffline(event, data) {
+  //   const component = DashboardComponent.componentInstance;
+  //   component.formData.IsOffline = data;
+  // }
+
 
   async daraGuncelle() {
 
@@ -452,10 +531,14 @@ export class DashboardComponent implements OnInit {
 
     this.formData.IsOffline = AppNetworkStatus.isOffline;
     var plakaNo = this.ddPlaka.f_list.filter(x => x.AracId == this.formData.AracId)[0].PlakaNo;
-    if (this.formData.IsOffline && this.barkodTuru == "Kamu Fiş") {
-      Notiflix.Notify.failure(`${this.formData.BelgeNo} Belgeli Kamu Fiş Atılamadı`)
-      return;
-    }
+
+    // BAHADIR ABİYLE GÖRÜŞ
+
+    // if (this.formData.IsOffline && this.barkodTuru == "Kamu Fiş") {
+    //   Notiflix.Notify.failure(`${this.formData.BelgeNo} Belgeli Kamu Fiş Atılamadı`)
+    //   return;
+    // }
+
     if (this.view.data.length > 0 && this.view.data[0].PlakaNo == plakaNo) {
       Notiflix.Notify.failure(`${plakaNo} TEKRARLAYAN GEÇİŞ`);
       return;
@@ -473,10 +556,13 @@ export class DashboardComponent implements OnInit {
       if (result.success) {
         if (this._electronService.ipcRenderer)
           this._electronService.ipcRenderer.send('bariyer');
-        this.responseToPrint(result.data);
+        if (this.barkodTuru != "Kamu Fiş") {
+          this.responseToPrint(result.data);
+        }
         this.initializeFormData();
         this.BindGrid();
       }
+
     }
   }
 

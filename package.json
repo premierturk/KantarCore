@@ -1,10 +1,10 @@
 {
   "name": "kantarcore",
-  "productName": "KantarCore",
-  "description": "KantarCore",
+  "productName": "HYBS_Kantar",
+  "description": "HYBS_Kantar",
   "author": "premierturk",
   "license": "CC0-1.0",
-  "version": "1.0.13",
+  "version": "1.0.20",
   "main": "main.js",
   "scripts": {
     "start": "ng serve --proxy-config src/proxy.conf.json",
@@ -29,7 +29,7 @@
   "build": {
     "asar": true,
     "appId": "premierturk.KantarCore",
-    "productName": "KantarCore",
+    "productName": "HYBS_Kantar",
     "directories": {
       "buildResources": "assets"
     },
@@ -55,7 +55,8 @@
     },
     "extraFiles": [
       "./kantarConfigs.json",
-      "./antenConfigTools/**"
+      "./antenConfigTools/**",
+      "./fis/**"
     ]
   },
   "private": true,
@@ -109,6 +110,7 @@
     "node-run-cmd": "^1.0.1",
     "notiflix": "3.2.6",
     "path": "^0.12.7",
+    "ping": "^0.4.4",
     "rxjs": "~7.4.0",
     "serialport": "^11.0.0",
     "sweetalert2": "^8.13.0",
