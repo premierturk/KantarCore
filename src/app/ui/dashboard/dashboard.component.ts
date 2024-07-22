@@ -49,7 +49,7 @@ export class DashboardComponent implements OnInit {
   public raporTuru: any = { kamufis: true, dokumfisi: true, ozel: true, manueldokum: true, gerikazanim: true, evsel: true, sanayi: true };
   public user = JSON.parse(window.localStorage.getItem('user'));
   public setinterval;
-  public hybsPing;
+  // public hybsPing;
   // public depolamaAlanId = window.localStorage.getItem('DepolamaAlanId');
 
 
@@ -97,7 +97,7 @@ export class DashboardComponent implements OnInit {
 
   ngOnDestroy() {
     clearInterval(this.setinterval);
-    clearInterval(this.hybsPing);
+    // clearInterval(this.hybsPing);
   }
 
 
@@ -151,6 +151,7 @@ export class DashboardComponent implements OnInit {
 
         }
         else {
+          this.formData.BarkodNo = '';
           this.formData.FirmaAdi = '';
           this.ddPlaka.f_list = [];
           Notiflix.Notify.failure("HATALI/KULLANILMIŞ KAMUFİŞ NO")
@@ -161,7 +162,6 @@ export class DashboardComponent implements OnInit {
     }
     else if (barkodKontrol.includes("-")) {    // KABUL BELGESİ
       this.barkodTuru = "Kabul Belgesi";
-
       var barkodBelge = this.getBelgeNo(barkodKontrol);
       var tasimaKabulKontrol = this.tasimaKabulListesi.filter(x => x.BelgeNo == barkodBelge)[0];
       this.formData.BelgeNo = barkodBelge;
@@ -174,6 +174,7 @@ export class DashboardComponent implements OnInit {
 
       }
       else {
+        this.formData.BarkodNo = '';
         this.formData.FirmaAdi = '';
         this.formData.Dara = 0;
         this.formData.AracId = undefined;
@@ -187,6 +188,7 @@ export class DashboardComponent implements OnInit {
       if (this.formData.IsOffline) {
         var firma = this.ddFirma.f_list.filter(x => x.FirmaId == firmId)[0];
         if (firma == null) {
+          this.formData.BarkodNo = '';
           Notiflix.Notify.failure("Firma Bulunamadı")
           return;
         }
@@ -194,6 +196,7 @@ export class DashboardComponent implements OnInit {
           var araclist = JSON.parse(localStorage.getItem("araclistesi"))
           var arac = araclist.filter(x => x.FirmaAdi == firma.FirmaAdi);
           if (arac == null) {
+            this.formData.BarkodNo = '';
             Notiflix.Notify.failure("Firmaya ait araç bulunamadı")
             return;
           }
@@ -277,7 +280,6 @@ export class DashboardComponent implements OnInit {
       this.formData.AracId = arac.AracId;
       this.aracTakipKontrol = true;
       this.formData.Dara = arac.Dara;
-
       // setTimeout(() => {
       //   this.save();
       // }, 3000);
@@ -291,24 +293,24 @@ export class DashboardComponent implements OnInit {
     this.kamuFisListesi = await this.ds.get(`${this.url}/kantar/KamuFisListesi`);
     this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
     this.depolamaAlani = await this.ds.get(`${this.url}/kantar/DepolamaAlani?DepolamaAlaniId=${this.kantarConfig.depolamaAlanId}`);
-    if (this.depolamaAlani.DepoalamaAlani.OgsAktif) {
-      this.plakaDisable = true;
-    }
+    // if (this.depolamaAlani.DepoalamaAlani.OgsAktif) {
+    //   this.plakaDisable = true;
+    // }
 
     this.setinterval = setInterval(async () => {
       this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
       this.kamuFisListesi = await this.ds.get(`${this.url}/kantar/KamuFisListesi`);
     }, 60000);
 
-    this.hybsPing = setInterval(async () => {
-      var HybsErisim = await this.ds.getResponse(`${this.url}/kantar/OfflineControl`);
-      if (HybsErisim.status != 200) {
-        this.formData.IsOffline = true;
-      }
-      else {
-        this.formData.IsOffline = false;
-      }
-    }, 120000);
+    // this.hybsPing = setInterval(async () => {
+    //   var HybsErisim = await this.ds.getResponse(`${this.url}/kantar/OfflineControl`);
+    //   if (HybsErisim.status != 200) {
+    //     this.formData.IsOffline = true;
+    //   }
+    //   else {
+    //     this.formData.IsOffline = false;
+    //   }
+    // }, 120000);
   }
 
 
@@ -319,7 +321,6 @@ export class DashboardComponent implements OnInit {
     this.clearSelections();
     if (this.basTar != undefined && this.bitTar != undefined) {
       var query = this.user.buyuksehirid + "#" + this.basTar.toUTCString() + "#" + this.bitTar.toUTCString() + "#" + this.formData.firmaId + "#" + this.kantarConfig.depolamaAlanId + "#" + "" + "#" + this.raporTuru.kamufis + "#" + this.raporTuru.dokumfisi + "#" + this.raporTuru.ozel + "#" + this.raporTuru.manueldokum + "#" + this.raporTuru.gerikazanim + "#" + "Hayir" + "#" + this.raporTuru.evsel + "#" + this.raporTuru.sanayi + "#" + this.user.userid;
-
 
       this.list = await this.ds.get(`${this.url}/ParaYukleme/GetRaporMulti?q=${btoa(query)}`);
       var offlineKayit = JSON.parse(window.localStorage.getItem('offlineRequests')) // Offline kayıtların grid de sürekli gösteriminin sağlanması
@@ -342,6 +343,7 @@ export class DashboardComponent implements OnInit {
 
   public initializeFormData() {
     this.formData = {};
+    this.formData.BarkodNo = '';
     this.ref.detectChanges();
     for (const property in this.emptyFormData) this.formData[property] = this.emptyFormData[property];
     this.ref.detectChanges();
@@ -382,7 +384,6 @@ export class DashboardComponent implements OnInit {
 
 
   public responseToPrint(data) {
-    console.log(data)
     if (data == null) return;
     var print = data; //offline request response
 
@@ -397,7 +398,7 @@ export class DashboardComponent implements OnInit {
         Dara: data.dara,
         NetTonaj: data.net,
         Tutar: data.tutar,
-        Bakiye: data.bakiye - data.tutar,
+        Bakiye: data.bakiye,
         BelgeNo: data.belgeno,
         BelgeMiktari: data.belgemik,
         BelgeTopDok: data.belgetopdok,
@@ -427,10 +428,10 @@ export class DashboardComponent implements OnInit {
       Tonaj: data.Tonaj + data.Dara,
       NetTonaj: data.Tonaj,
       Tutar: data.Tutar,
-      Bakiye: data.Bakiye - data.Tutar,
+      Bakiye: data.Bakiye,
       BelgeMiktari: data.BelgeMiktari,
       BelgeTopDok: data.ToplamDokumMiktari,
-      BelgeKalMik: data.ToplamDokumMiktari - data.BelgeMiktari,
+      BelgeKalMik: data.BelgeMiktari - data.ToplamDokumMiktari,
     };
     if (this._electronService.ipcRenderer)
       this._electronService.ipcRenderer.send('onprint', [print]);
@@ -619,7 +620,7 @@ class DropdownProps {
   }
 
   onChange(keyword) {
-    this.f_list = this.list.filter((x) => x[this.displayField].includes(keyword.toUpperCase()));
+    this.f_list = this.f_list.filter((x) => x[this.displayField].includes(keyword.toUpperCase()));
   }
 
 

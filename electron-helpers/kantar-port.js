@@ -183,26 +183,26 @@ class KantarPort {
 
     currMessage = KantarPort.dataParser(currMessage); //parse kantar data
     var after = currMessage;
-    // console.log(
-    //   "First Read =>" +
-    //     firstread +
-    //     "Completed Msg =>" +
-    //     complete +
-    //     " Before Parser =>" +
-    //     before +
-    //     " After Parser =>" +
-    //     after
-    // );
-    // printToAngular(
-    //   "First Read =>" +
-    //     firstread +
-    //     "Completed Msg =>" +
-    //     complete +
-    //     " Before Parser =>" +
-    //     before +
-    //     " After Parser =>" +
-    //     after
-    // );
+    console.log(
+      "First Read =>" +
+        firstread +
+        "Completed Msg =>" +
+        complete +
+        " Before Parser =>" +
+        before +
+        " After Parser =>" +
+        after
+    );
+    printToAngular(
+      "First Read =>" +
+        firstread +
+        "Completed Msg =>" +
+        complete +
+        " Before Parser =>" +
+        before +
+        " After Parser =>" +
+        after
+    );
 
     messages.push(currMessage);
 
