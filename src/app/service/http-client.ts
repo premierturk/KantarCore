@@ -2,7 +2,12 @@ import axios from 'axios';
 import * as moment from 'moment';
 
 const instance = axios.create({
-  headers: { 'X-Custom-Header': 'foobar' }
+  headers: {
+    'X-Custom-Header': 'foobar',
+    'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
+    'Accept': 'application/json; charset=utf-8'
+  }
+
 });
 
 function handleDates(body: any) {
@@ -36,6 +41,7 @@ const strUser = window.localStorage.getItem('user');
 if (strUser !== null && strUser !== 'null' && strUser != undefined && strUser != "undefined") {
   const user: any = JSON.parse(strUser);
   instance.defaults.headers.common.Authorization = `Bearer ${user.authtoken}`;
+  instance.defaults.responseEncoding = 'utf8'; // default
 }
 
 export default instance;

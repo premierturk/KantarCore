@@ -115,6 +115,8 @@ export class DashboardComponent implements OnInit {
   }
 
   public async belgeNoFromBarcode(code) {
+    this.formData.BarkodNo = '';
+    this.barcode = '';
     var barkodKontrol = code.replaceAll("Shift", "").replaceAll("Control", "").replaceAll("*", "-").toUpperCase();
 
     if (barkodKontrol.includes("KF-") && barkodKontrol.includes("-KF"))   // KAMU FİŞ
@@ -125,7 +127,8 @@ export class DashboardComponent implements OnInit {
       var fisTeslimId = barkodKontrol.substring(indexStart, indexEnd + 3)
       if (!this.formData.IsOffline) {
 
-        this.formData.BelgeNo = fisTeslimId;
+        // this.formData.BelgeNo = fisTeslimId;
+        // this.formData.BarkodNo=fisTeslimId;
 
         var kamuFis = await this.ds.post(`${this.url}/kantar/KamuFisKontrol`, { "FisTeslimId": parseInt(fisTeslimId.split('-')[1]) });
         if (kamuFis.success) {
@@ -139,6 +142,8 @@ export class DashboardComponent implements OnInit {
           this.formData.FirmaAdi = '';
           this.formData.Dara = 0;
           this.formData.AracId = undefined;
+          this.formData.BarkodNo = '';
+          this.barcode = '';
         }
       }
       else {
@@ -155,16 +160,19 @@ export class DashboardComponent implements OnInit {
           this.formData.FirmaAdi = '';
           this.ddPlaka.f_list = [];
           Notiflix.Notify.failure("HATALI/KULLANILMIŞ KAMUFİŞ NO")
+          return;
         }
-        this.formData.BelgeNo = fisTeslimId;
+        // this.formData.BelgeNo = fisTeslimId;
+        // this.formData.BarkodNo=fisTeslimId;
 
       }
+      this.formData.BelgeNo = fisTeslimId;
+      this.formData.BarkodNo = fisTeslimId;
     }
     else if (barkodKontrol.includes("-")) {    // KABUL BELGESİ
       this.barkodTuru = "Kabul Belgesi";
       var barkodBelge = this.getBelgeNo(barkodKontrol);
       var tasimaKabulKontrol = this.tasimaKabulListesi.filter(x => x.BelgeNo == barkodBelge)[0];
-      this.formData.BelgeNo = barkodBelge;
       if (tasimaKabulKontrol != undefined && tasimaKabulKontrol != null) {
         this.ddPlaka.f_list = this.ddPlaka.list.filter(x => tasimaKabulKontrol.Araclar.some(a => a.PlakaNo == x.PlakaNo))
         this.formData.FirmaAdi = tasimaKabulKontrol.FirmaAdi;
@@ -175,11 +183,15 @@ export class DashboardComponent implements OnInit {
       }
       else {
         this.formData.BarkodNo = '';
+        this.barcode = '';
         this.formData.FirmaAdi = '';
         this.formData.Dara = 0;
         this.formData.AracId = undefined;
         Notiflix.Notify.failure('Belge Bulunamadı.');
+        return;
       }
+      this.formData.BelgeNo = barkodBelge;
+      this.formData.BarkodNo = barkodKontrol;
     }
     else if (!barkodKontrol.includes("-") && barkodKontrol.includes("A") && barkodKontrol.endsWith("A1")) {   // NAKİT DÖKÜM
 
@@ -189,6 +201,7 @@ export class DashboardComponent implements OnInit {
         var firma = this.ddFirma.f_list.filter(x => x.FirmaId == firmId)[0];
         if (firma == null) {
           this.formData.BarkodNo = '';
+          this.barcode = '';
           Notiflix.Notify.failure("Firma Bulunamadı")
           return;
         }
@@ -197,6 +210,7 @@ export class DashboardComponent implements OnInit {
           var arac = araclist.filter(x => x.FirmaAdi == firma.FirmaAdi);
           if (arac == null) {
             this.formData.BarkodNo = '';
+            this.barcode = '';
             Notiflix.Notify.failure("Firmaya ait araç bulunamadı")
             return;
           }
@@ -212,8 +226,17 @@ export class DashboardComponent implements OnInit {
         var nakitDokum = await this.ds.post(`${this.url}/kantar/NakitDokumKontrol`, { 'BelgeNo': firmId });
         if (nakitDokum.success) {
           this.formData.BelgeNo = barkodKontrol;
+          this.formData.BarkodNo = barkodKontrol;
           this.ddPlaka.f_list = this.ddPlaka.list.filter(x => nakitDokum.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
           this.formData.FirmaAdi = nakitDokum.data.FirmaAdi;
+          this.formData.Dara = 0;
+          this.formData.AracId = undefined;
+        }
+        else {
+          this.formData.BarkodNo = '';
+          this.formData.BelgeNo = '';
+          this.barcode = '';
+          this.formData.FirmaAdi = '';
           this.formData.Dara = 0;
           this.formData.AracId = undefined;
         }
@@ -222,7 +245,7 @@ export class DashboardComponent implements OnInit {
 
 
     }
-    this.formData.BarkodNo = barkodKontrol;
+    // this.formData.BarkodNo = barkodKontrol;
 
   }
   getBelgeNo(readed: any) {
@@ -277,9 +300,14 @@ export class DashboardComponent implements OnInit {
         }
 
       }
+      if (this.formData.BelgeNo == '' || this.formData.BelgeNo == null) {
+        this.formData.BarkodNo = '';
+        this.barcode = '';
+      }
       this.formData.AracId = arac.AracId;
       this.aracTakipKontrol = true;
       this.formData.Dara = arac.Dara;
+
       // setTimeout(() => {
       //   this.save();
       // }, 3000);
@@ -293,9 +321,9 @@ export class DashboardComponent implements OnInit {
     this.kamuFisListesi = await this.ds.get(`${this.url}/kantar/KamuFisListesi`);
     this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
     this.depolamaAlani = await this.ds.get(`${this.url}/kantar/DepolamaAlani?DepolamaAlaniId=${this.kantarConfig.depolamaAlanId}`);
-    // if (this.depolamaAlani.DepoalamaAlani.OgsAktif) {
-    //   this.plakaDisable = true;
-    // }
+    if (this.depolamaAlani.DepoalamaAlani.OgsAktif) {
+      this.plakaDisable = true;
+    }
 
     this.setinterval = setInterval(async () => {
       this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
@@ -344,6 +372,7 @@ export class DashboardComponent implements OnInit {
   public initializeFormData() {
     this.formData = {};
     this.formData.BarkodNo = '';
+    this.barcode = '';
     this.ref.detectChanges();
     for (const property in this.emptyFormData) this.formData[property] = this.emptyFormData[property];
     this.ref.detectChanges();
@@ -560,8 +589,13 @@ export class DashboardComponent implements OnInit {
         if (this.barkodTuru != "Kamu Fiş") {
           this.responseToPrint(result.data);
         }
+        this.formData.BarkodNo = '';
+        this.barcode = '';
         this.initializeFormData();
         this.BindGrid();
+      }
+      else {
+        this.formData.Tonaj = 0;
       }
 
     }
@@ -576,7 +610,7 @@ export class DashboardComponent implements OnInit {
     else if (this.formData.BelgeNo == null || this.formData.BelgeNo == '') s = 'Barkod Okutunuz.';
     else if (this.formData.Dara == null || this.formData.Dara < 1) s = 'Dara bulunamadı.';
     else if (this.formData.Tonaj == null || this.formData.Tonaj < 1) s = 'Tonaj bulunamadı.';
-    else if (this.formData.Tonaj < this.formData.Dara && this.formData.Tonaj > 1) s = 'Dara Tonajdan büyük olamaz.';
+    else if (this.formData.Tonaj < this.formData.Dara) s = 'Dara Tonajdan büyük olamaz.';
     return s;
   }
 

@@ -25,7 +25,18 @@ export class DataSource {
 
   async login(url: string, data: any) {
     try {
-      const resp = await httpClient.post(url, data);
+
+      var username = data.split('&')[1].replace("username=", "")
+      var password = data.split('&')[2].replace("password=", "")
+      const params = new URLSearchParams()
+      params.append('grant_type', 'password')
+      params.append('username', username)
+      params.append('password', password)
+
+
+
+
+      const resp = await httpClient.post(url, params);
       if (resp.status == 200) {
         Notiflix.Notify.success('Hoşgeldiniz');
       } else {
