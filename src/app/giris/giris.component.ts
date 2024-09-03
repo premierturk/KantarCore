@@ -4,6 +4,7 @@ import { DataSource } from '../service/datasource';
 import { GradientConfig } from '../app-config';
 import httpClient from '../service/http-client';
 import { KantarConfig } from '../helper/kantar-config';
+
 @Component({
   selector: 'app-giris',
   templateUrl: './giris.component.html',
@@ -29,9 +30,13 @@ export class GirisComponent {
     }
   };
 
+
+
+
   ngOnInit() {
     this.getLoginInfo();
   }
+
 
 
   private url: string = this.kantarConfig.serviceUrl;

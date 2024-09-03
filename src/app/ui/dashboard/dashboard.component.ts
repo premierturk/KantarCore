@@ -13,7 +13,7 @@ import { KantarConfig } from 'src/app/helper/kantar-config';
 import helper from 'src/app/service/helper';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { SahaSecimiComponent } from './saha-secimi/saha-secimi.component';
-
+import onScan from 'onscan.js';
 
 @Component({
   selector: 'app-dashboard',
@@ -25,7 +25,9 @@ export class DashboardComponent implements OnInit {
   @ViewChild('grid') grid: GridComponent;
   public view: GridDataResult;
   public list: any[] = [];
+  public listEnSon: any[] = [];
   public tasimaKabulListesi: any[] = [];
+  public ddPlakaBelgeFilter: any[] = [];
   public kamuFisListesi: any[] = [];
   public depolamaAlani;
   public mySelections: any[] = [];
@@ -49,6 +51,7 @@ export class DashboardComponent implements OnInit {
   public raporTuru: any = { kamufis: true, dokumfisi: true, ozel: true, manueldokum: true, gerikazanim: true, evsel: true, sanayi: true };
   public user = JSON.parse(window.localStorage.getItem('user'));
   public setinterval;
+  public OgsAracId = null;
   // public hybsPing;
   // public depolamaAlanId = window.localStorage.getItem('DepolamaAlanId');
 
@@ -79,14 +82,32 @@ export class DashboardComponent implements OnInit {
       this.formData.IsOffline = true;
     });
 
-
-
   }
-
-
 
   ngOnInit(): void {
     this.initializeFormData();
+    onScan.attachTo(document, {
+      onScan: function (sScanned) {
+        console.log("Barkoddan Okunan Değer:" + sScanned)
+
+        if (sScanned.includes("KF")) {
+          sScanned = "KF-" + sScanned.split("KF")[1] + "-KF"
+          console.log("Barkod Okuyucu Kamu Fiş: " + sScanned)
+        }
+        else if (sScanned.includes("A") && !sScanned.endsWith("A1")) {
+          var yil = sScanned.slice(-4);
+          sScanned = sScanned.replace(yil, "").concat("-", yil)
+          console.log("Barkod Okuyucu Kabul Belgesi: " + sScanned)
+        }
+        else if (sScanned.includes("A") && sScanned.endsWith("A1")) {
+          console.log("Barkod Okuyucu Nakit Döküm: " + sScanned)
+        }
+        this.barcode = '';
+        const component = DashboardComponent.componentInstance;
+        component.belgeNoFromBarcode(sScanned)
+        component.ref.detectChanges()
+      }
+    });
     var now = new Date();
     this.basTar = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     this.bitTar = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -94,27 +115,26 @@ export class DashboardComponent implements OnInit {
     this.BindForm();
   }
 
-
   ngOnDestroy() {
+    onScan.detachFrom(document);
     clearInterval(this.setinterval);
     // clearInterval(this.hybsPing);
   }
 
+  // @HostListener('window:keydown', ['$event'])
+  // keyEvent(event: KeyboardEvent) {
+  //   if (event.key == 'Enter') {
+  //     console.log("Klavye Girişi: " + this.barcode);
+  //     this.belgeNoFromBarcode(this.barcode);
 
-
-  @HostListener('window:keydown', ['$event'])
-  keyEvent(event: KeyboardEvent) {
-    if (event.key == 'Enter') {
-      console.log(this.barcode);
-      this.belgeNoFromBarcode(this.barcode);
-
-      this.barcode = '';
-      return;
-    }
-    this.barcode += event.key;
-  }
+  //     this.barcode = '';
+  //     return;
+  //   }
+  //   this.barcode += event.key;
+  // }
 
   public async belgeNoFromBarcode(code) {
+    console.log("Belgeyi Okutunca Parse Edilen Yer: " + code)
     this.formData.BarkodNo = '';
     this.barcode = '';
     var barkodKontrol = code.replaceAll("Shift", "").replaceAll("Control", "").replaceAll("*", "-").toUpperCase();
@@ -156,9 +176,12 @@ export class DashboardComponent implements OnInit {
 
         }
         else {
-          this.formData.BarkodNo = '';
-          this.formData.FirmaAdi = '';
           this.ddPlaka.f_list = [];
+          this.formData.FirmaAdi = '';
+          this.formData.Dara = 0;
+          this.formData.AracId = undefined;
+          this.formData.BarkodNo = '';
+          this.barcode = '';
           Notiflix.Notify.failure("HATALI/KULLANILMIŞ KAMUFİŞ NO")
           return;
         }
@@ -242,12 +265,14 @@ export class DashboardComponent implements OnInit {
         }
       }
 
-
-
     }
+    this.ddPlakaBelgeFilter = this.ddPlaka.f_list;
     // this.formData.BarkodNo = barkodKontrol;
-
+    if (this.OgsAracId != null) {
+      this.plakaChange(this.OgsAracId)
+    }
   }
+
   getBelgeNo(readed: any) {
 
 
@@ -270,7 +295,6 @@ export class DashboardComponent implements OnInit {
     const arac = this.ddPlaka.list.filter((x) => x.AracId == aracId)[0];
     if (arac != undefined && arac != null) {
 
-
       if (this.barkodTuru == "Nakit Döküm" && this.formData.Tonaj > 80000) {
         if (!arac.AracTakipVarmi) {
           Notiflix.Notify.failure("Araç Takip Sözleşmesi Yoktur.")
@@ -282,7 +306,6 @@ export class DashboardComponent implements OnInit {
           Notiflix.Notify.failure("Taşıma İzin Süresi Dolmuştur")
           this.aracTakipKontrol = false;
           return;
-
         }
 
       }
@@ -316,14 +339,20 @@ export class DashboardComponent implements OnInit {
   }
 
   public async BindForm() {
+    this.isLoading = true;
     this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
     this.ddFirma = new DropdownProps("FirmaAdi", await this.ds.get(`${this.url}/FirmaListesiByCariHesapTuru`));
     this.kamuFisListesi = await this.ds.get(`${this.url}/kantar/KamuFisListesi`);
     this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
     this.depolamaAlani = await this.ds.get(`${this.url}/kantar/DepolamaAlani?DepolamaAlaniId=${this.kantarConfig.depolamaAlanId}`);
-    if (this.depolamaAlani.DepoalamaAlani.OgsAktif) {
-      this.plakaDisable = true;
+    console.log("Depolama Alanı:" + this.depolamaAlani)
+    if (this.depolamaAlani.DepoalamaAlani != null) {
+      if (this.depolamaAlani.DepoalamaAlani.OgsAktif) {
+        this.plakaDisable = true;
+      }
     }
+    this.isLoading = false;
+
 
     this.setinterval = setInterval(async () => {
       this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
@@ -341,7 +370,6 @@ export class DashboardComponent implements OnInit {
     // }, 120000);
   }
 
-
   public async BindGrid() {
     if (this.formData.firmaId == undefined) {
       this.formData.firmaId = "";
@@ -350,7 +378,17 @@ export class DashboardComponent implements OnInit {
     if (this.basTar != undefined && this.bitTar != undefined) {
       var query = this.user.buyuksehirid + "#" + this.basTar.toUTCString() + "#" + this.bitTar.toUTCString() + "#" + this.formData.firmaId + "#" + this.kantarConfig.depolamaAlanId + "#" + "" + "#" + this.raporTuru.kamufis + "#" + this.raporTuru.dokumfisi + "#" + this.raporTuru.ozel + "#" + this.raporTuru.manueldokum + "#" + this.raporTuru.gerikazanim + "#" + "Hayir" + "#" + this.raporTuru.evsel + "#" + this.raporTuru.sanayi + "#" + this.user.userid;
 
+
+
+      var querySonKayit = this.user.buyuksehirid + "#" + new Date().toUTCString() + "#" + new Date().toUTCString() + "#" + this.formData.firmaId + "#" + this.kantarConfig.depolamaAlanId + "#" + "" + "#" + this.raporTuru.kamufis + "#" + this.raporTuru.dokumfisi + "#" + this.raporTuru.ozel + "#" + this.raporTuru.manueldokum + "#" + this.raporTuru.gerikazanim + "#" + "Hayir" + "#" + this.raporTuru.evsel + "#" + this.raporTuru.sanayi + "#" + this.user.userid;
+
+      this.isLoading = true;
       this.list = await this.ds.get(`${this.url}/ParaYukleme/GetRaporMulti?q=${btoa(query)}`);
+      this.isLoading = false;
+
+      this.listEnSon = await this.ds.getNoMessage(`${this.url}/ParaYukleme/GetRaporMulti?q=${btoa(querySonKayit)}`);
+
+
       var offlineKayit = JSON.parse(window.localStorage.getItem('offlineRequests')) // Offline kayıtların grid de sürekli gösteriminin sağlanması
       if (offlineKayit != null) {
         offlineKayit.forEach(element => {
@@ -411,11 +449,9 @@ export class DashboardComponent implements OnInit {
     return result;
   }
 
-
   public responseToPrint(data) {
     if (data == null) return;
     var print = data; //offline request response
-
     if (data.fisno!) { //web service response
       print = {
         KantarAdi: JSON.parse(window.localStorage.getItem("kantarConfig")).kantarAdi,
@@ -483,20 +519,19 @@ export class DashboardComponent implements OnInit {
     // }, 3000);
   }
 
-
   onDataTcp(event, data) {
-    console.log(data);
+    console.log("OGS Etiket Data: " + data);
     const component = DashboardComponent.componentInstance;
     var arac = component.ddPlaka.list.filter(x => x.OGSEtiket == data)[0];
     if (arac == undefined) {
       return;
     }
     component.formData.AracId = arac.AracId;
-    component.ref.detectChanges();
+    this.OgsAracId = arac.AracId;
     component.plakaChange(arac.AracId);
+    component.ref.detectChanges();
 
   }
-
 
   // pingOffline(event, data) {
   //   const component = DashboardComponent.componentInstance;
@@ -569,10 +604,13 @@ export class DashboardComponent implements OnInit {
     //   return;
     // }
 
-    if (this.view.data.length > 0 && this.view.data[0].PlakaNo == plakaNo) {
-      Notiflix.Notify.failure(`${plakaNo} TEKRARLAYAN GEÇİŞ`);
-      return;
+    if (this.user.ilid != 1) {
+      if (this.listEnSon.length > 0 && this.listEnSon[0].PlakaNo == plakaNo) {
+        Notiflix.Notify.failure(`${plakaNo} TEKRARLAYAN GEÇİŞ`);
+        return;
+      }
     }
+
     var err = this.validations();
 
     if (err != '') {
@@ -595,6 +633,7 @@ export class DashboardComponent implements OnInit {
         this.BindGrid();
       }
       else {
+        this.formData.FirmaAdi = null;
         this.formData.Tonaj = 0;
       }
 
@@ -640,8 +679,6 @@ export class DashboardComponent implements OnInit {
   }
 }
 
-
-
 class DropdownProps {
   list: any[] = [];
   f_list: any[] = [];
@@ -654,10 +691,16 @@ class DropdownProps {
   }
 
   onChange(keyword) {
-    this.f_list = this.f_list.filter((x) => x[this.displayField].includes(keyword.toUpperCase()));
+    this.f_list = this.list.filter((x) => x[this.displayField].includes(keyword.toUpperCase()));
   }
 
+  onPLakaFilter(keyword) {
+    if (DashboardComponent.componentInstance.ddPlakaBelgeFilter.length > 0) {
+      this.f_list = DashboardComponent.componentInstance.ddPlakaBelgeFilter.filter((x) => x[this.displayField].includes(keyword.toUpperCase()));
+    }
+    else {
+      this.f_list = this.list.filter((x) => x[this.displayField].includes(keyword.toUpperCase()));
+    }
 
+  }
 }
-
-

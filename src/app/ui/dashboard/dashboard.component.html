@@ -175,7 +175,7 @@
                 <kendo-dropdownlist [disabled]="plakaDisable" [size]="'small'" [kendoDropDownFilter]="filterSettings"
                     [popupSettings]="{ appendTo: 'component' }" [filterable]="true" class="width"
                     [data]="ddPlaka.f_list" [textField]="ddPlaka.displayField" [valueField]="'AracId'"
-                    (filterChange)="ddPlaka.onChange($event)" [valuePrimitive]="true" [(ngModel)]="formData.AracId"
+                    (filterChange)="ddPlaka.onPLakaFilter($event)" [valuePrimitive]="true" [(ngModel)]="formData.AracId"
                     (valueChange)="plakaChange($event)">
                 </kendo-dropdownlist>
 
@@ -219,7 +219,8 @@
             </div>
         </div>
         <div class="modal-footer" style="justify-content: space-evenly">
-            <button class="btn btn-success" (click)="save()" [disabled]="formData.FirmaAdi=='' || !aracTakipKontrol">
+            <button class="btn btn-success" (click)="save()"
+                [disabled]="formData.FirmaAdi=='' || !aracTakipKontrol || isLoading">
                 Kaydet
             </button>
 

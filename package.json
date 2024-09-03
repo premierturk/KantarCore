@@ -4,12 +4,13 @@
   "description": "HYBS_Kantar",
   "author": "premierturk",
   "license": "CC0-1.0",
-  "version": "1.0.17",
+  "version": "1.0.24",
   "main": "main.js",
   "scripts": {
     "start": "ng serve --proxy-config src/proxy.conf.json",
     "electron": "electron .",
     "electronB": "ng build --base-href ./ && electron .",
+    "electronR": "electron-rebuild",
     "electron-exe": "ng build --prod && electron-builder -w",
     "publish": "electron-builder build --win --publish always",
     "build": "electron-builder build --win --publish never"
@@ -109,6 +110,7 @@
     "ngx-perfect-scrollbar": "^8.0.0",
     "node-run-cmd": "^1.0.1",
     "notiflix": "3.2.6",
+    "onscan.js": "^1.5.2",
     "path": "^0.12.7",
     "ping": "^0.4.4",
     "rxjs": "~7.4.0",

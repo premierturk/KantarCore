@@ -8,7 +8,7 @@ const AntenTcp = require("./electron-helpers/anten-tcp");
 const KantarPort = require("./electron-helpers/kantar-port");
 const FisPrinter = require("./electron-helpers/fis-printer");
 const { ayarlarMenu } = require("./electron-helpers/ayarlar/ayarlarMenu");
-var ping = require("ping");
+// var ping = require("ping");
 let mainWindow;
 const printToAngular = (message) =>
   mainWindow.webContents.send("print", message);

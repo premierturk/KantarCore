@@ -87,14 +87,25 @@ export class DataSource {
   }
 
 
-  // async getNoMess(url: string) {
-  //   try {
-  //     const resp = await httpClient.get(url);
-  //     return resp.data;
-  //   } catch (err) {
-  //     return err;
-  //   }
-  // }
+  async getNoMessage(url: string) {
+    if (AppNetworkStatus.isOffline) return JSON.parse(window.localStorage.getItem("GridNowDateData"));
+    try {
+      const resp = await httpClient.get(url);
+
+      resp.data = resp.data.sort(function (a, b) {
+        return Date.parse(b.IslemTarihi) - Date.parse(a.IslemTarihi);
+      });
+      if (resp.status == 200) {
+        window.localStorage.setItem("GridNowDateData", JSON.stringify(resp.data));
+      } else {
+        Notiflix.Notify.failure(resp.data.toString());
+      }
+      return resp.data;
+    } catch (err) {
+      this.handleErrorResponse(err);
+      return err;
+    }
+  }
 
   async post(url: string, data: any) {
     if (AppNetworkStatus.isOffline) return this.offlinePost(url, data);
