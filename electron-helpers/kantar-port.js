@@ -210,7 +210,7 @@ class KantarPort {
       let allSame = [...new Set(messages)].length == 1;
       if (allSame) {
         mainWindow.webContents.send("kantar", [messages[0]]);
-        console.log("Data sended => " + messages[0]);
+        // console.log("Data sended => " + messages[0]);
         messages = [];
       } else {
         messages = messages.slice(1);
