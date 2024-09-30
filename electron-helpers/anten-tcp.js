@@ -61,13 +61,13 @@ function onConnData(d) {
         var data = parseInt(hex1 + hex2 + hex3, 16);
         if (!data.toString().startsWith("1001")) return;
 
-        printToAngular("Parsed TCP data => " + data);
+        // printToAngular("Parsed TCP data => " + data);
         tcpmessages.push(data);
 
         if (tcpmessages.length == 5) {
           let allSame = [...new Set(tcpmessages)].length == 1;
           if (allSame) {
-            printToAngular("TCP MESSAGE => " + tcpmessages[0].toString());
+            // printToAngular("TCP MESSAGE => " + tcpmessages[0].toString());
             mainWindow.webContents.send("tcp", tcpmessages[0].toString());
             console.log(data);
             tcpmessages = [];

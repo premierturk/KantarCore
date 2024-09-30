@@ -68,6 +68,24 @@ export class DataSource {
     }
   }
 
+  async getNoStorage(url: string) {
+
+    try {
+      const resp = await httpClient.get(url);
+
+      if (resp.status != 200) {
+        Notiflix.Notify.failure(resp.data.toString());
+      }
+
+      return resp;
+    } catch (err) {
+      this.handleErrorResponse(err);
+      return err;
+    }
+  }
+
+
+
   async getResponse(url: string) {
     const localStorageName = url.split("?")[0].split("/").pop();
     if (AppNetworkStatus.isOffline) return JSON.parse(window.localStorage.getItem(localStorageName));

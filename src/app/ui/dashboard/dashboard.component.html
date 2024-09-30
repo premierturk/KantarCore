@@ -5,7 +5,7 @@
             <div class="row col-md-6 col-sm-4">
                 <div title="{{this.formData.IsOffline ==true ?  'Offline': 'Online'}} "
                     [ngStyle]="{'background-color':this.formData.IsOffline ==true  ?  '#fd0707': '#1ce61c'}"
-                    style="margin-left: 2%;width: 4%;border: 1px solid black;border-radius: 70%">
+                    style="margin-left: 2%;width: 4%;border: 1px solid rgb(16, 184, 1);border-radius: 70%">
                 </div>
                 <div class="col-md-3 vertical-text-center">
                     <label class="pt-1 mb-0">Başlangıç Tarihi :</label>
@@ -71,6 +71,15 @@
         </div>
         <div class="row m-0 pb-2 pt-1">
             <div class="row col-md-6">
+
+                <div class="col-md-6 col-lg-4 col-xl-3 col-sm-5 text-center p-0">
+                    <button [disabled]="!selectedItem" class="col-md-10 btn btn-primary text-nowrap"
+                        (click)="cezaYaz(selectedItem)">
+                        <i class="fas fa-pen pr-2"></i>Ceza Yaz
+                        <!-- <i class="fa-file-excel far fas pr-2"></i> -->
+                    </button>
+                </div>
+
                 <div class="col-md-6 col-lg-4 col-xl-3 col-sm-5 text-center p-0">
                     <button class="col-md-10 btn excel-btn text-nowrap" (click)="excel()">
                         <i class="fa-file-excel far fas pr-2"></i>Excel
@@ -78,7 +87,7 @@
                 </div>
 
                 <div class="col-md-6 col-lg-4  col-xl-3 col-sm-5 text-center p-0">
-                    <button [disabled]="!selectedItem" class="col-md-10 btn btn-secondary text-nowrap"
+                    <button [disabled]="!selectedItem || isLoading" class="col-md-10 btn btn-secondary text-nowrap"
                         (click)="gridToPrint(selectedItem)">
                         <i class="fa-print far fas pr-2"></i>Yazdır
                     </button>
