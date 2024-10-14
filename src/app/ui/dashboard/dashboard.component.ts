@@ -97,17 +97,19 @@ export class DashboardComponent implements OnInit {
     onScan.attachTo(document, {
       onScan: function (sScanned) {
         console.log("Barkoddan Okunan Değer:" + sScanned)
+        var ilkindex = sScanned.indexOf("A");
+        var sonindex = sScanned.lastIndexOf("A");
 
         if (sScanned.includes("KF")) {
           sScanned = "KF-" + sScanned.split("KF")[1] + "-KF"
           console.log("Barkod Okuyucu Kamu Fiş: " + sScanned)
         }
-        else if (sScanned.includes("A") && !sScanned.endsWith("A1")) {
+        else if (sScanned.includes("A") && ilkindex == sonindex) {
           var yil = sScanned.slice(-4);
           sScanned = sScanned.replace(yil, "").concat("-", yil)
           console.log("Barkod Okuyucu Kabul Belgesi: " + sScanned)
         }
-        else if (sScanned.includes("A") && sScanned.endsWith("A1")) {
+        else if (sScanned.includes("A") && ilkindex != sonindex) {
           console.log("Barkod Okuyucu Nakit Döküm: " + sScanned)
         }
         this.barcode = '';
@@ -195,7 +197,7 @@ export class DashboardComponent implements OnInit {
       this.formData.BelgeNo = fisTeslimId;
       this.formData.BarkodNo = fisTeslimId;
     }
-    else if (barkodKontrol.includes("-")) {    // KABUL BELGESİ
+    else if (barkodKontrol.includes("-") && barkodKontrol.includes("A")) {    // KABUL BELGESİ
       this.barkodTuru = "Kabul Belgesi";
       var barkodBelge = this.getBelgeNo(barkodKontrol);
 
@@ -241,7 +243,7 @@ export class DashboardComponent implements OnInit {
       this.formData.BelgeNo = barkodBelge;
       this.formData.BarkodNo = barkodKontrol;
     }
-    else if (!barkodKontrol.includes("-") && barkodKontrol.includes("A") && barkodKontrol.endsWith("A1")) {   // NAKİT DÖKÜM
+    else if (!barkodKontrol.includes("-") && barkodKontrol.includes("A")) {   // NAKİT DÖKÜM
 
       this.barkodTuru = "Nakit Döküm";
       var firmId = barkodKontrol.split('A')[1]
@@ -493,7 +495,7 @@ export class DashboardComponent implements OnInit {
     this.isLoading = true;
     var result = await this.ds.get(`${this.url}/kantar/ceza?HafriyatDokumId=${item.HafriyatDokumId}`);
     this.isLoading = false;
-    if (result == "") {
+    if (result != null || result != undefined) {
       this.gridToPrint(item)
       this.BindGrid();
     }
@@ -710,8 +712,16 @@ export class DashboardComponent implements OnInit {
     else if (this.formData.FirmaAdi == null) s = 'Firma Adı bulunamadı.';
     else if (this.formData.BelgeNo == null || this.formData.BelgeNo == '') s = 'Barkod Okutunuz.';
     else if (this.formData.Dara == null || this.formData.Dara < 1) s = 'Dara bulunamadı.';
-    else if (this.formData.Tonaj == null || this.formData.Tonaj < 1) s = 'Tonaj bulunamadı.';
-    else if (this.formData.Tonaj < this.formData.Dara) s = 'Dara Tonajdan büyük olamaz.';
+    else if (this.formData.Tonaj == null || this.formData.Tonaj < 1) {
+      if (this.kantarConfig.kantar) {
+        s = 'Tonaj bulunamadı.';
+      }
+    }
+    else if (this.formData.Tonaj < this.formData.Dara) {
+      if (this.kantarConfig.kantar) {
+        s = 'Dara Tonajdan büyük olamaz.';
+      }
+    }
     return s;
   }
 
