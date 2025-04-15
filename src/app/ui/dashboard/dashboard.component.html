@@ -72,8 +72,8 @@
         <div class="row m-0 pb-2 pt-1">
             <div class="row col-md-6">
 
-                <div class="col-md-6 col-lg-4 col-xl-3 col-sm-5 text-center p-0">
-                    <button [disabled]="!selectedItem" class="col-md-10 btn btn-primary text-nowrap"
+                <div class="col-md-6 col-lg-4 col-xl-4 col-sm-5 text-center p-0">
+                    <button [disabled]="!selectedItem" class="col-md-11 btn btn-primary text-nowrap"
                         (click)="cezaYaz(selectedItem)">
                         <i class="fas fa-pen pr-2"></i>Ceza Yaz
                         <!-- <i class="fa-file-excel far fas pr-2"></i> -->
@@ -191,7 +191,7 @@
             </div>
             <div class="mb-2">
                 <label>Belge No</label>
-                <kendo-textbox class="width" [size]="'small'" [(ngModel)]="formData.BelgeNo">
+                <kendo-textbox class="width" [disabled]="true" [size]="'small'" [(ngModel)]="formData.BelgeNo">
                 </kendo-textbox>
             </div>
             <div class="mb-2">

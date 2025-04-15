@@ -27,7 +27,7 @@ class AntenTcp {
   }
 
   static handleConnection(conn) {
-    this.connection = conn;
+    AntenTcp.connection = conn;
     var remoteAddress = conn.remoteAddress + ":" + conn.remotePort;
     console.log("new client connection from " + remoteAddress);
     printToAngular("new client connection from " + remoteAddress);
@@ -39,8 +39,8 @@ class AntenTcp {
   }
 
   static openBariyer(event) {
-    if (this.connection) {
-      this.connection.write("0100000111040D12CA\r");
+    if (AntenTcp.connection) {
+      AntenTcp.connection.write("0100000111040D12CA");
       mainWindow.webContents.send("basarili", "Çıkış bariyeri açıldı.");
     }
   }

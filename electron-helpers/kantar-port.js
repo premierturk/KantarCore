@@ -71,6 +71,16 @@ class KantarPort {
         console.log("Kantar verisi int'e çevrilemedi");
         return 0;
       }
+    } else if (AppConfig.kantarMarka == "weiloKantar") {
+      return msg
+        .replaceAll("US", "")
+        .replaceAll("GS", "")
+        .replaceAll("ST", "")
+        .replaceAll(",", "")
+        .replaceAll("+", "")
+        .replaceAll("-", "")
+        .replaceAll("kg", "")
+        .replaceAll(" ", "");
     } else {
       return msg;
     }
@@ -206,7 +216,7 @@ class KantarPort {
 
     messages.push(currMessage);
 
-    if (messages.length == 5) {
+    if (messages.length == 3) {
       let allSame = [...new Set(messages)].length == 1;
       if (allSame) {
         mainWindow.webContents.send("kantar", [messages[0]]);

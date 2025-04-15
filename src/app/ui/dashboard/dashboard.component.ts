@@ -29,6 +29,7 @@ export class DashboardComponent implements OnInit {
   public tasimaKabulListesi: any[] = [];
   public speedTest;
   public ddPlakaBelgeFilter: any[] = [];
+  public ddTumPlakalar: any[] = [];
   public kamuFisListesi: any[] = [];
   public depolamaAlani;
   public mySelections: any[] = [];
@@ -51,7 +52,7 @@ export class DashboardComponent implements OnInit {
   public user = JSON.parse(window.localStorage.getItem('user'));
   public setinterval;
   public OgsAracId = null;
-
+  public IsOfflineBackUp: boolean;
 
   public state: State = {
     skip: 0,
@@ -94,6 +95,7 @@ export class DashboardComponent implements OnInit {
   async afterInit() {
     await this.BindForm();
     this.BindGrid();
+
     onScan.attachTo(document, {
       onScan: function (sScanned) {
         console.log("Barkoddan Okunan Değer:" + sScanned)
@@ -112,11 +114,21 @@ export class DashboardComponent implements OnInit {
         else if (sScanned.includes("A") && ilkindex != sonindex) {
           console.log("Barkod Okuyucu Nakit Döküm: " + sScanned)
         }
+        else if (sScanned.length > 4 && sScanned.length < 9) {
+          sScanned = sScanned.replace("*", "-");
+          if (sScanned.length == 6) {
+            sScanned = sScanned[0] + sScanned[1] + "-" + sScanned[2] + sScanned[3] + sScanned[4] + sScanned[5];
+          }
+          else if (sScanned.length == 5) {
+            sScanned = sScanned[0] + "-" + sScanned[1] + sScanned[2] + sScanned[3] + sScanned[4];
+          }
+        }
         this.barcode = '';
         const component = DashboardComponent.componentInstance;
         component.belgeNoFromBarcode(sScanned)
         component.ref.detectChanges()
-      }
+      },
+      minLength: 5
     });
   }
 
@@ -204,7 +216,7 @@ export class DashboardComponent implements OnInit {
       if (this.formData.IsOffline) {
         var tasimaKabulKontrol = this.tasimaKabulListesi.filter(x => x.BelgeNo == barkodBelge)[0];
         if (tasimaKabulKontrol != undefined && tasimaKabulKontrol != null) {
-          this.ddPlaka.f_list = this.ddPlaka.list.filter(x => tasimaKabulKontrol.Araclar.some(a => a.PlakaNo == x.PlakaNo))
+          this.ddPlaka.f_list = this.ddPlaka.list.filter(x => tasimaKabulKontrol.IlceBelediyeler_TasimaKabul_Araclar.some(a => a.PlakaNo == x.PlakaNo))
           this.formData.FirmaAdi = tasimaKabulKontrol.FirmaAdi;
           // this.formData.Dara = 0;
           // this.formData.AracId = undefined;
@@ -293,7 +305,55 @@ export class DashboardComponent implements OnInit {
       }
 
     }
-    this.ddPlakaBelgeFilter = this.ddPlaka.f_list;
+    else if (barkodKontrol.includes("-") && !barkodKontrol.includes("A")) {     // SAKARYA KABUL BELGESİ
+      this.barkodTuru = "Kabul Belgesi";
+
+      if (this.formData.IsOffline) {
+        var tasimaKabulKontrol = this.tasimaKabulListesi.filter(x => x.BelgeNo == barkodKontrol)[0];
+        if (tasimaKabulKontrol != undefined && tasimaKabulKontrol != null) {
+          this.ddPlaka.f_list = this.ddPlaka.list.filter(x => tasimaKabulKontrol.IlceBelediyeler_TasimaKabul_Araclar.some(a => a.PlakaNo == x.PlakaNo))
+          this.formData.FirmaAdi = tasimaKabulKontrol.FirmaAdi;
+          // this.formData.Dara = 0;
+          // this.formData.AracId = undefined;
+          // this.formData.BarkodNo = barkodKontrol;
+        }
+        else {
+          this.formData.BarkodNo = '';
+          this.barcode = '';
+          this.formData.FirmaAdi = '';
+          this.formData.Dara = 0;
+          // this.formData.AracId = undefined;
+          Notiflix.Notify.failure('Belge Bulunamadı.');
+          return;
+        }
+      }
+      else {
+        var kabulListesiSorgu = await this.ds.post(`${this.url}/kantar/KabulBelgesiKontrolV2`, { 'BelgeNo': barkodKontrol, 'BarkodNo': barkodKontrol });
+        if (kabulListesiSorgu.success) {
+          this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kabulListesiSorgu.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
+          this.formData.FirmaAdi = kabulListesiSorgu.data.FirmaAdi;
+          // this.formData.Dara = 0;
+          // this.formData.AracId = undefined;
+        }
+        else {
+          Notiflix.Notify.failure('Hatalı Belge Numarası (KabulBelgesiKontrolV2).');
+          this.formData.BarkodNo = '';
+          this.formData.BelgeNo = '';
+          this.barcode = '';
+          this.formData.FirmaAdi = '';
+          this.formData.Dara = 0;
+          return;
+          // this.formData.AracId = undefined;
+        }
+      }
+
+      this.formData.BelgeNo = barkodKontrol;
+      this.formData.BarkodNo = barkodKontrol;
+    }
+    // this.ddPlakaBelgeFilter = this.ddPlaka.f_list;
+    this.ddPlaka.f_list.forEach(element => {
+      this.ddPlakaBelgeFilter.push(element)
+    });
     // this.formData.BarkodNo = barkodKontrol;
     if (this.OgsAracId != null) {
       this.plakaChange(this.OgsAracId)
@@ -320,6 +380,10 @@ export class DashboardComponent implements OnInit {
 
   public plakaChange(aracId) {
     const arac = this.ddPlaka.list.filter((x) => x.AracId == aracId)[0];
+    var aracEkliMi = this.ddPlaka.f_list.filter(x => x.AracId == arac.AracId)[0];
+    if (aracEkliMi == null || aracEkliMi == undefined) {
+      this.ddPlaka.f_list.push(arac);
+    }
     if (arac != undefined && arac != null) {
 
       if (this.barkodTuru == "Nakit Döküm" && this.formData.Tonaj > 80000) {
@@ -367,6 +431,7 @@ export class DashboardComponent implements OnInit {
 
   public async BindForm() {
     this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
+    this.ddTumPlakalar = this.ddPlaka.list;
     this.ddFirma = new DropdownProps("FirmaAdi", await this.ds.get(`${this.url}/FirmaListesiByCariHesapTuru`));
     this.isLoading = true;
     this.kamuFisListesi = await this.ds.get(`${this.url}/kantar/KamuFisListesi`);
@@ -447,6 +512,7 @@ export class DashboardComponent implements OnInit {
   public initializeFormData() {
     this.formData = {};
     this.formData.BarkodNo = '';
+    this.formData.Tonaj = 0;
     this.barcode = '';
     this.ref.detectChanges();
     for (const property in this.emptyFormData) this.formData[property] = this.emptyFormData[property];
@@ -584,12 +650,12 @@ export class DashboardComponent implements OnInit {
   onDataTcp(event, data) {
     console.log("OGS Etiket Data: " + data);
     const component = DashboardComponent.componentInstance;
-    var arac = component.ddPlaka.list.filter(x => x.OGSEtiket == data)[0];
+    var arac = component.ddTumPlakalar.filter(x => x.OGSEtiket == data)[0];
     if (arac == undefined) {
       return;
     }
     component.formData.AracId = arac.AracId;
-    this.OgsAracId = arac.AracId;
+    component.OgsAracId = arac.AracId;
     component.plakaChange(arac.AracId);
     component.ref.detectChanges();
 
@@ -657,8 +723,22 @@ export class DashboardComponent implements OnInit {
       // }
     }
 
-    this.formData.IsOffline = AppNetworkStatus.isOffline;
-    var plakaNo = this.ddPlaka.f_list.filter(x => x.AracId == this.formData.AracId)[0].PlakaNo;
+    // this.formData.IsOffline = AppNetworkStatus.isOffline;
+
+
+    var err = this.validations();
+
+    if (err != '') {
+      Notiflix.Notify.failure(err);
+      return;
+    }
+
+
+    var plakaNo = this.ddPlakaBelgeFilter.filter(x => x.AracId == this.formData.AracId)[0];
+    if (plakaNo == null || plakaNo == undefined) {
+      Notiflix.Notify.failure(`Plaka Belgeye Kayıtlı Değildir`);
+      return;
+    }
 
     // BAHADIR ABİYLE GÖRÜŞ
 
@@ -667,36 +747,36 @@ export class DashboardComponent implements OnInit {
     //   return;
     // }
 
-    if (this.user.ilid != 1) {
-      if (this.listEnSon.length > 0 && this.listEnSon[0].PlakaNo == plakaNo) {
-        Notiflix.Notify.failure(`${plakaNo} TEKRARLAYAN GEÇİŞ`);
-        return;
-      }
-    }
+    // if (this.user.ilid != 1) {
+    //   if (this.listEnSon.length > 0 && this.listEnSon[0].PlakaNo == plakaNo.PlakaNo) {
+    //     Notiflix.Notify.failure(`${plakaNo.PlakaNo} TEKRARLAYAN GEÇİŞ`);
+    //     return;
+    //   }
+    // }
 
-    var err = this.validations();
 
-    if (err != '') {
-      Notiflix.Notify.failure(err);
-      return;
-    }
-    else if (this.isLoading == false && this.aracTakipKontrol) {
+    if (this.isLoading == false && this.aracTakipKontrol) {
       this.isLoading = true;
       var result = await this.ds.post(`${this.url}/kantar/hafriyatkabul/KabulBelgesi`, { AracId: this.formData.AracId, FirmaId: null, SahaId: sahaId, UserId: this.user.userid, BelgeNo: this.formData.BelgeNo, BarkodNo: this.formData.BarkodNo, DepolamaAlanId: this.kantarConfig.depolamaAlanId, Tonaj: this.formData.Tonaj, Dara: this.formData.Dara, GirisCikis: 'Giriş', isOffline: this.formData.IsOffline, IslemTarihi: new Date() });
       this.isLoading = false;
       if (result.success) {
-        if (this._electronService.ipcRenderer)
+        if (this._electronService.ipcRenderer) {
+          console.log("Bariyer Açma Komutu")
           this._electronService.ipcRenderer.send('bariyer');
+        }
         if (this.barkodTuru != "Kamu Fiş") {
           this.responseToPrint(result.data);
         }
         this.formData.BarkodNo = '';
         this.barcode = '';
+        this.IsOfflineBackUp = this.formData.IsOffline;
         this.initializeFormData();
+        this.formData.IsOffline = this.IsOfflineBackUp;
         // await this.BindForm();
         this.BindGrid();
       }
       else {
+        this.formData.AracId = null;
         this.formData.FirmaAdi = null;
         this.formData.Tonaj = 0;
       }

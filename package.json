@@ -4,7 +4,7 @@
   "description": "HYBS_Kantar",
   "author": "premierturk",
   "license": "CC0-1.0",
-  "version": "1.0.34",
+  "version": "1.0.53",
   "main": "main.js",
   "scripts": {
     "start": "ng serve --proxy-config src/proxy.conf.json",
@@ -114,7 +114,7 @@
     "path": "^0.12.7",
     "ping": "^0.4.4",
     "rxjs": "~7.4.0",
-    "serialport": "^11.0.0",
+    "serialport": "^11.0.1",
     "sweetalert2": "^8.13.0",
     "zone.js": "~0.11.4"
   },
