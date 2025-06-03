@@ -40,3 +40,26 @@ kendo-grid-column {
     color: #ff6757;
   }
   
+  .countdown-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.countdown-badge {
+    position: absolute;
+    top: 75%;
+    right: 5px; 
+    transform: translateY(-50%);
+    background-color: white;
+    border:1px solid green;
+    color: green;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+    text-align: center;
+    line-height: 24px;
+    pointer-events: none;
+    z-index: 2;
+}

@@ -185,14 +185,18 @@
                     [popupSettings]="{ appendTo: 'component' }" [filterable]="true" class="width"
                     [data]="ddPlaka.f_list" [textField]="ddPlaka.displayField" [valueField]="'AracId'"
                     (filterChange)="ddPlaka.onPLakaFilter($event)" [valuePrimitive]="true" [(ngModel)]="formData.AracId"
-                    (valueChange)="plakaChange($event)">
+                    (valueChange)="plakaChange($event)" [virtual]="virtual">
                 </kendo-dropdownlist>
 
             </div>
-            <div class="mb-2">
+            <div class="mb-2 position-relative countdown-wrapper">
                 <label>Belge No</label>
                 <kendo-textbox class="width" [disabled]="true" [size]="'small'" [(ngModel)]="formData.BelgeNo">
                 </kendo-textbox>
+                <div *ngIf="countdown > 0" class="countdown-badge">
+                    {{ countdown }}
+                </div>
+
             </div>
             <div class="mb-2">
                 <label>Firma</label>
