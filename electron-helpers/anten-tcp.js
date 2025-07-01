@@ -48,37 +48,47 @@ class AntenTcp {
 
 function onConnData(d) {
   try {
-    for (let i = 0; i < d.length; i++) arr.push("0x" + d[i].toString(16));
+    let arr = [];
+
+    // d arrayindeki byte'ları hex string'e çevir
+    for (let i = 0; i < d.length; i++) {
+      arr.push("0x" + d[i].toString(16).padStart(2, "0"));
+    }
+
+    // Eğer gerekli byte'lar yoksa işlemi bitir
     if (!arr.includes("0x51") && !arr.includes("0x13")) return;
-    for (var i = 0; i < arr.length - 4; i++) {
-      if (arr[i] == 0x51 || arr[i] == 0x13) {
-        if (arr.Length < i + 3) return;
-        var hex1 = byteToHex(arr[i + 1]);
-        var hex2 = byteToHex(arr[i + 2]);
-        var hex3 = byteToHex(arr[i + 3]);
+
+    for (let i = 0; i < arr.length - 4; i++) {
+      if (arr[i] === "0x51" || arr[i] === "0x13") {
+        if (arr.length < i + 4) return;
+
+        // Sonraki 3 byte'ı birleştirip hex string oluştur
+        const hex1 = arr[i + 1].slice(2); // '0x' kısmını at
+        const hex2 = arr[i + 2].slice(2);
+        const hex3 = arr[i + 3].slice(2);
+
         arr = [];
 
-        var data = parseInt(hex1 + hex2 + hex3, 16);
+        const data = parseInt(hex1 + hex2 + hex3, 16);
+
         if (!data.toString().startsWith("1001")) return;
 
-        // printToAngular("Parsed TCP data => " + data);
         tcpmessages.push(data);
 
-        if (tcpmessages.length == 5) {
-          let allSame = [...new Set(tcpmessages)].length == 1;
-          if (allSame) {
-            // printToAngular("TCP MESSAGE => " + tcpmessages[0].toString());
-            mainWindow.webContents.send("tcp", tcpmessages[0].toString());
-            console.log(data);
-            tcpmessages = [];
-          } else {
-            tcpmessages = tcpmessages.slice(1);
-          }
+        // if (tcpmessages.length === 2) {
+        const allSame = new Set(tcpmessages).size === 1;
+        if (allSame) {
+          mainWindow.webContents.send("tcp", data.toString());
+          console.log("TCP MESAJI =>", data.toString());
+          tcpmessages = [];
+        } else {
+          tcpmessages = tcpmessages.slice(1); // yalnızca sonuncuyu tut
         }
+        // }
       }
     }
-  } catch (error) {
-    console.log("on connection data error : " + error);
+  } catch (e) {
+    console.error("TCP verisi işlenirken hata:", e);
   }
 }
 

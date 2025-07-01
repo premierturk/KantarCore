@@ -70,30 +70,37 @@
             </div>
         </div>
         <div class="row m-0 pb-2 pt-1">
-            <div class="row col-md-6">
+            <div class="row col-md-8">
 
-                <div class="col-md-6 col-lg-4 col-xl-4 col-sm-5 text-center p-0">
+                <div class="col-md-4 col-lg-3 col-xl-3 col-sm-3 text-center p-0" *ngIf="user.ilid===1"
+                    [ngbTooltip]="'Bir satır daha ekler'">
                     <button [disabled]="!selectedItem" class="col-md-11 btn btn-primary text-nowrap"
                         (click)="cezaYaz(selectedItem)">
                         <i class="fas fa-pen pr-2"></i>Ceza Yaz
-                        <!-- <i class="fa-file-excel far fas pr-2"></i> -->
                     </button>
                 </div>
-
-                <div class="col-md-6 col-lg-4 col-xl-3 col-sm-5 text-center p-0">
+                <div class="col-md-4 col-lg-3 col-xl-3 col-sm-3 text-center p-0" *ngIf="user.ilid===1"
+                    [ngbTooltip]="'Bir satır daha ekler'">
+                    <button [disabled]="!selectedItem" class="col-md-11 btn btn-info text-nowrap"
+                        (click)="copAtigiYaz(selectedItem)">
+                        <i class="fas fa-trash pr-2"></i>
+                        Çöp Atığı
+                    </button>
+                </div>
+                <div class="col-md-5 col-lg-3 col-xl-2 col-sm-4 text-center p-0">
                     <button class="col-md-10 btn excel-btn text-nowrap" (click)="excel()">
                         <i class="fa-file-excel far fas pr-2"></i>Excel
                     </button>
                 </div>
 
-                <div class="col-md-6 col-lg-4  col-xl-3 col-sm-5 text-center p-0">
+                <div class="col-md-5 col-lg-3  col-xl-2 col-sm-4 text-center p-0">
                     <button [disabled]="!selectedItem || isLoading" class="col-md-10 btn btn-secondary text-nowrap"
                         (click)="gridToPrint(selectedItem)">
                         <i class="fa-print far fas pr-2"></i>Yazdır
                     </button>
                 </div>
             </div>
-            <div class="col-md-6 p-0">
+            <div class="col-md-4 p-0">
                 <div class="row">
                     <div class="col-md-2 mt-1 p-0">
                         <span>Firma Adı : </span>
@@ -237,8 +244,6 @@
                 Kaydet
             </button>
 
-            <!-- <app-button [buttonType]="ButtonType.Kaydet" (click)="save()"
-                [isdisabled]="formData.FirmaAdi=='' || !aracTakipKontrol"></app-button> -->
             <!-- Kocaeli'nin il id si 1 olduğundan Dara Güncelleme Gözükmeyecek -->
             <button class="btn btn-warning" (click)="daraGuncelle()" *ngIf="user.ilid!=1"
                 [disabled]="formData.Tonaj<1000 || formData.Tonaj>25000">
