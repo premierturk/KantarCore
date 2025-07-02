@@ -107,47 +107,47 @@ export class DashboardComponent implements OnInit {
     onScan.attachTo(document, {
       onScan: function (sScanned) {
 
+        sScanned = sScanned.replace("*", "-");
+        // var ilkindex = sScanned.indexOf("A");
+        // var sonindex = sScanned.lastIndexOf("A");
 
-        var ilkindex = sScanned.indexOf("A");
-        var sonindex = sScanned.lastIndexOf("A");
+        // if (sScanned.includes("KF")) {
+        //   sScanned = sScanned.replace("*", "-");
+        //   console.log("Barkod Okuyucu Kamu Fiş: " + sScanned);
+        // }
+        // else if (sScanned.includes("A") && ilkindex == sonindex) {
 
-        if (sScanned.includes("KF")) {
-          sScanned = sScanned.replace("*", "-");
-          console.log("Barkod Okuyucu Kamu Fiş: " + sScanned);
-        }
-        else if (sScanned.includes("A") && ilkindex == sonindex) {
+        //   var yil = sScanned.split("*")[1];
+        //   var ilkhane = sScanned.split("*")[0];
+        //   sScanned = ilkhane + "-" + yil;
+        //   console.log("Barkod Okuyucu Kabul Belgesi Tekli: " + sScanned);
+        // }
+        // else if (sScanned.includes("A") && ilkindex != sonindex) {
+        //   console.log("Barkod Okuyucu Nakit Döküm Tekli: " + sScanned);
+        // }
+        // else if (sScanned.length > 4 && sScanned.length < 9 && sScanned.includes("*")) {
+        //   console.log("Barkod Okuyucu Kabul Belgesi Çoklu: " + sScanned);
 
-          var yil = sScanned.split("*")[1];
-          var ilkhane = sScanned.split("*")[0];
-          sScanned = ilkhane + "-" + yil;
-          console.log("Barkod Okuyucu Kabul Belgesi Tekli: " + sScanned);
-        }
-        else if (sScanned.includes("A") && ilkindex != sonindex) {
-          console.log("Barkod Okuyucu Nakit Döküm Tekli: " + sScanned);
-        }
-        else if (sScanned.length > 4 && sScanned.length < 9 && sScanned.includes("*")) {
-          console.log("Barkod Okuyucu Kabul Belgesi Çoklu: " + sScanned);
+        //   sScanned = sScanned.replace("*", "-");
 
-          sScanned = sScanned.replace("*", "-");
+        //   // if (sScanned.length === 6) {
+        //   //   sScanned = sScanned[0] + sScanned[1] + "-" + sScanned[2] + sScanned[3] + sScanned[4] + sScanned[5];
+        //   // } else if (sScanned.length === 5) {
+        //   //   sScanned = sScanned[0] + "-" + sScanned[1] + sScanned[2] + sScanned[3] + sScanned[4];
+        //   // } else if (sScanned.length === 7) {
 
-          if (sScanned.length === 6) {
-            sScanned = sScanned[0] + sScanned[1] + "-" + sScanned[2] + sScanned[3] + sScanned[4] + sScanned[5];
-          } else if (sScanned.length === 5) {
-            sScanned = sScanned[0] + "-" + sScanned[1] + sScanned[2] + sScanned[3] + sScanned[4];
-          } else if (sScanned.length === 7) {
+        //   //   const dashIndex = sScanned.indexOf('-');
+        //   //   if (dashIndex !== -1) {
+        //   //     sScanned = sScanned.substring(0, dashIndex) + "-" + sScanned.substring(dashIndex + 1);
+        //   //   } else {
 
-            const dashIndex = sScanned.indexOf('-');
-            if (dashIndex !== -1) {
-              sScanned = sScanned.substring(0, dashIndex) + "-" + sScanned.substring(dashIndex + 1);
-            } else {
+        //   //     sScanned = sScanned[0] + sScanned[1] + sScanned[2] + "-" + sScanned[3] + sScanned[4] + sScanned[5] + sScanned[6];
+        //   //   }
+        //   // } else if (sScanned.length === 8) {
 
-              sScanned = sScanned[0] + sScanned[1] + sScanned[2] + "-" + sScanned[3] + sScanned[4] + sScanned[5] + sScanned[6];
-            }
-          } else if (sScanned.length === 8) {
-
-            sScanned = sScanned[0] + sScanned[1] + sScanned[2] + sScanned[3] + "-" + sScanned[4] + sScanned[5] + sScanned[6] + sScanned[7];
-          }
-        }
+        //   //   sScanned = sScanned[0] + sScanned[1] + sScanned[2] + sScanned[3] + "-" + sScanned[4] + sScanned[5] + sScanned[6] + sScanned[7];
+        //   // }
+        // }
         this.barcode = '';
         const component = DashboardComponent.componentInstance;
         component.belgeNoFromBarcode(sScanned);
