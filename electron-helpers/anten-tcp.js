@@ -76,14 +76,14 @@ function onConnData(d) {
         tcpmessages.push(data);
 
         // if (tcpmessages.length === 2) {
-        const allSame = new Set(tcpmessages).size === 1;
-        if (allSame) {
-          mainWindow.webContents.send("tcp", data.toString());
-          console.log("TCP MESAJI =>", data.toString());
-          tcpmessages = [];
-        } else {
-          tcpmessages = tcpmessages.slice(1); // yalnızca sonuncuyu tut
-        }
+        // const allSame = new Set(tcpmessages).size === 1;
+        // if (allSame) {
+        mainWindow.webContents.send("tcp", data.toString());
+        console.log("TCP MESAJI =>", data.toString());
+        tcpmessages = [];
+        // } else {
+        //   tcpmessages = tcpmessages.slice(1); // yalnızca sonuncuyu tut
+        // }
         // }
       }
     }

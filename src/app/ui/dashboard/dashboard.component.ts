@@ -833,7 +833,6 @@ export class DashboardComponent implements OnInit {
     if (arac == undefined) {
       return;
     }
-    component.formData.AracId = arac.AracId;
     component.OgsAracId = arac.AracId;
     component.plakaChange(arac.AracId);
     component.ref.detectChanges();
