@@ -724,7 +724,7 @@ export class DashboardComponent implements OnInit {
 
   async copAtigiYaz(item) {
     const willDelete = await Swal.fire({
-      title: `Çöp Atığı Yazmak İstediğinize Emin Misiniz?`,
+      title: `İnşaat Atığı Yazmak İstediğinize Emin Misiniz?`,
       type: 'warning',
       showCloseButton: false,
       showCancelButton: true,
@@ -827,6 +827,40 @@ export class DashboardComponent implements OnInit {
   }
 
   onDataTcp(event, data) {
+    // const component = DashboardComponent.componentInstance;
+    // // BURADA ARROW FUNCTION KULLANIYORUZ
+    // component.zone.run(() => {
+    //   // 'this' artık MyComponent sınıfını işaret ediyor
+    //   // 'this' zaten component olduğu için bu satır gereksiz ama kodunuzda olduğu için bıraktım
+
+    //   var arac = component.ddTumPlakalar.filter(x => x.OGSEtiket == data)[0];
+    //   if (arac == undefined) {
+    //     return;
+    //   }
+    //   component.OgsAracId = arac.AracId;
+    //   component.plakaChange(arac.AracId);
+
+    //   // ref zaten constructor'da enjekte edildi, direkt kullanabilirsiniz.
+    //   // if (component.ref) { } kontrolü de gereksiz, ref her zaman var olacak.
+    //   component.ref.detectChanges();
+    // });
+
+    //   BUNU DENİYCEM DENERKEN CONSTRUCTOR A private zone: NgZone bunun eklenmesi gerekir
+    // this.zone.run(() => {
+    //   const component = this;
+
+    //   var arac = component.ddTumPlakalar.filter(x => x.OGSEtiket == data)[0];
+    //   if (arac == undefined) {
+    //     return;
+    //   }
+    //   component.OgsAracId = arac.AracId;
+    //   component.plakaChange(arac.AracId);
+
+
+    //   if (component.ref) {
+    //     component.ref.detectChanges();
+    //   }
+    // });
     console.log("OGS Etiket Data: " + data);
     const component = DashboardComponent.componentInstance;
     var arac = component.ddTumPlakalar.filter(x => x.OGSEtiket == data)[0];
