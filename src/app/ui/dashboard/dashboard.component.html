@@ -187,13 +187,17 @@
         <div class="modal-body" style="padding: 5px">
             <div class="mb-2">
                 <label>Plaka</label>
+                <form [formGroup]="form">
+                    <kendo-dropdownlist [disabled]="plakaDisable" [size]="'small'"
+                        [kendoDropDownFilter]="filterSettings" formControlName="plakaNo"
+                        [popupSettings]="{ appendTo: 'component' }" [filterable]="true" class="width"
+                        [data]="ddPlaka.f_list" [textField]="ddPlaka.displayField" [valueField]="'AracId'"
+                        (filterChange)="ddPlaka.onPLakaFilter($event)" [valuePrimitive]="true"
+                        [(ngModel)]="formData.AracId" (valueChange)="plakaChange($event)" [virtual]="virtual">
+                    </kendo-dropdownlist>
 
-                <kendo-dropdownlist [disabled]="plakaDisable" [size]="'small'" [kendoDropDownFilter]="filterSettings"
-                    [popupSettings]="{ appendTo: 'component' }" [filterable]="true" class="width"
-                    [data]="ddPlaka.f_list" [textField]="ddPlaka.displayField" [valueField]="'AracId'"
-                    (filterChange)="ddPlaka.onPLakaFilter($event)" [valuePrimitive]="true" [(ngModel)]="formData.AracId"
-                    (valueChange)="plakaChange($event)" [virtual]="virtual">
-                </kendo-dropdownlist>
+                </form>
+
 
             </div>
             <div class="mb-2 position-relative countdown-wrapper">
@@ -243,7 +247,6 @@
                 [disabled]="formData.FirmaAdi=='' || !aracTakipKontrol || isLoading">
                 Kaydet
             </button>
-
             <!-- Kocaeli'nin il id si 1 olduğundan Dara Güncelleme Gözükmeyecek -->
             <button class="btn btn-warning" (click)="daraGuncelle()" *ngIf="user.ilid!=1"
                 [disabled]="formData.Tonaj<1000 || formData.Tonaj>25000">

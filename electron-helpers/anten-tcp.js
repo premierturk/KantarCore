@@ -172,8 +172,6 @@ class AntenTcp {
 
 function onConnData(d) {
   try {
-    let results = [];
-
     // d arrayindeki byte'ları hex string'e çevir
     const buffer = Buffer.from(d);
     let markerIndex = buffer.indexOf(13);
@@ -201,12 +199,12 @@ function onConnData(d) {
         return;
       }
       const data = (hex4 << 24) | (hex3 << 16) | (hex2 << 8) | hex1;
-      const dataString = data.toString();
+      const dataString = data.toString(16).padStart(8, "0");
       if (dataString.startsWith("4001")) {
         if (tcpmessages.length > 0) {
-          mainWindow.webContents.send("tcp", dataString.toString());
+          mainWindow.webContents.send("tcp", dataString);
           tcpmessages = [];
-          console.log("TCP MESAJI =>", dataString.toString());
+          console.log("TCP MESAJI =>", dataString);
         }
       }
     } else {
