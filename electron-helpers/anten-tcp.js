@@ -176,13 +176,16 @@ function onConnData(d) {
     const buffer = Buffer.from(d);
     let markerIndex = buffer.indexOf(13);
     if (markerIndex === -1) {
-      buffer.forEach((element) => {
-        tcpmessages.push(element);
-      });
-      return;
-    } else {
-      for (let index = 0; index < markerIndex; index++) {
-        tcpmessages.push(buffer[index]);
+      markerIndex = buffer.indexOf(11);
+      if (markerIndex === -1) {
+        buffer.forEach((element) => {
+          tcpmessages.push(element);
+        });
+        return;
+      } else {
+        for (let index = 0; index < markerIndex; index++) {
+          tcpmessages.push(buffer[index]);
+        }
       }
     }
     if (tcpmessages[tcpmessages.length - 4].toString() == "64") {
