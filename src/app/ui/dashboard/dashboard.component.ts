@@ -478,10 +478,24 @@ export class DashboardComponent implements OnInit {
         this.formData.BarkodNo = '';
         this.barcode = '';
       }
+
+      // if (this.OgsAracId == null) {
+      //   var result = await this.ds.postNoMess(`${this.url}/Harita/GecmisIzlemeKabulParseliBul`, { basTar: new Date(), bitTar: new Date(new Date().getTime() - (5 * 60 * 60 * 1000)), aracTakipId: 'K1200227331', ticket: null });
+      //   if (result.success && this.formData.BelgeNo!="") {
+      //     if (result.data.List[0].BelgeNo != this.formData.BelgeNo) {
+      //       Notiflix.Notify.warning(`${moment(new Date()).format("DD/MM/YYYY")} tarihinde ${result.data.List[0].BelgeNo} numaralı geçiş tespit edilmiştir`)
+      //     }
+      //   }
+      // }
+
+
+
       this.formData.AracId = aracId;
       this.aracTakipKontrol = true;
       this.formData.Dara = arac.Dara;
       this.OgsAracId = null;
+
+
 
     }
   }
@@ -506,6 +520,7 @@ export class DashboardComponent implements OnInit {
     this.setinterval = setInterval(async () => {
       this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
       this.kamuFisListesi = await this.ds.get(`${this.url}/kantar/KamuFisListesi`);
+      this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
       console.clear();
     }, 60000);
 
@@ -746,7 +761,12 @@ export class DashboardComponent implements OnInit {
     const component = DashboardComponent.componentInstance;
     var arac = component.ddTumPlakalar.filter(x => x.OGSEtiket == data)[0];
     if (arac == undefined) {
+      component.formData.AracId = null;
+      component.formData.Dara = 0;
+      component.ref.detectChanges();
+
       return;
+
     }
     component.OgsAracId = arac.AracId;
     component.plakaChange(arac.AracId);

@@ -62,6 +62,8 @@ class KantarPort {
       return data;
     } else if (AppConfig.kantarMarka == "tunayKantar") {
       return msg.replaceAll("\u0002", "");
+    } else if (AppConfig.kantarMarka == "uzayKantar") {
+      return msg.toString().trim().split(/\s+/)[1];
     } else if (AppConfig.kantarMarka == "tunaylarKantar") {
       try {
         msg = msg.trim().split(" ")[1];

@@ -1,4 +1,5 @@
 const net = require("net");
+const AppConfig = require("./app-config");
 //#region main.js variables
 var mainWindow;
 var printToAngular;
@@ -14,15 +15,67 @@ function initializeMainJsVariables() {
 
 class AntenTcp {
   static connection;
+
   static createServer() {
     initializeMainJsVariables();
+    // if (AppConfig.antenTip == "hopland") {
+    //   this.connectToHopland();
+    // } else {
     var server = net.createServer();
+
     server.on("connection", this.handleConnection);
 
     server.listen(5555, function () {
       console.log("server listening to %j", server.address());
     });
   }
+  // }
+
+  // static connectToHopland() {
+  //   var client = net.connect(
+  //     { port: AppConfig.antenport, host: AppConfig.antenip },
+  //     () => {
+  //       console.log("Sunucuya baglanildi!");
+  //       printToAngular("Sunucuya baglanildi!");
+  //       AntenTcp.connection = client;
+
+  //       client.on("data", (data) => {
+  //         onConnData(data);
+  //       });
+
+  //       client.on("end", () => {
+  //         console.log("Sunucu ile baglanti kesildi.");
+  //         printToAngular("Sunucu ile baglanti kesildi.");
+  //         AntenTcp.connection = null;
+  //       });
+
+  //       client.on("error", (err) => {
+  //         console.log("Hata olustu: " + err.message);
+  //         printToAngular("Hata olustu: " + err.message);
+  //         AntenTcp.connection = null;
+  //       });
+  //       client.on("close", (hadError) => {
+  //         if (hadError) {
+  //           console.log(
+  //             "Bağlantı bir hata nedeniyle kapandı. Yeniden bağlanılıyor..."
+  //           );
+  //           printToAngular(
+  //             "Bağlantı bir hata nedeniyle kapandı. Yeniden bağlanılıyor..."
+  //           );
+  //         } else {
+  //           console.log(
+  //             "Bağlantı düzgün bir şekilde kapandı. Yeniden bağlanılıyor..."
+  //           );
+  //           printToAngular(
+  //             "Bağlantı düzgün bir şekilde kapandı. Yeniden bağlanılıyor..."
+  //           );
+  //         }
+  //         AntenTcp.connection = null;
+  //         setTimeout(AntenTcp.connectToHopland, 10000);
+  //       });
+  //     }
+  //   );
+  // }
 
   static handleConnection(conn) {
     AntenTcp.connection = conn;
@@ -38,8 +91,14 @@ class AntenTcp {
 
   static openBariyer(event) {
     if (AntenTcp.connection) {
+      // if (AppConfig.antenTip == "hopland") {
+      //   AntenTcp.connection.write("AA010900020100FD93");
+      //   AntenTcp.connection.write("AA010900020200FD93");
+      //   mainWindow.webContents.send("basarili", "Çıkış bariyeri açıldı.");
+      // } else {
       AntenTcp.connection.write("0100000111040D12CA");
       mainWindow.webContents.send("basarili", "Çıkış bariyeri açıldı.");
+      // }
     }
   }
 }
@@ -172,8 +231,31 @@ class AntenTcp {
 
 function onConnData(d) {
   try {
-    // d arrayindeki byte'ları hex string'e çevir
     const buffer = Buffer.from(d);
+    const hexString = buffer.toString("hex");
+
+    // if (AppConfig.antenTip == "hopland") {
+    //   const searchStr = "4001";
+    //   const indexStr = hexString.indexOf(searchStr);
+    //   if (indexStr !== -1 && buffer.length == 20) {
+    //     const yeniEtiketmesg = hexString.slice(indexStr, indexStr + 8);
+
+    //     mainWindow.webContents.send("tcp", yeniEtiketmesg);
+    //     console.log("TCP MESAJI =>", yeniEtiketmesg);
+    //   } else {
+    //     var eskiEtiketHex = hexString.slice(32, 38);
+    //     var eskiEtiketmsg = parseInt(eskiEtiketHex, 16);
+    //     if (
+    //       AppConfig.url.includes("samsun") &&
+    //       !String(eskiEtiketmsg).startsWith("103")
+    //     ) {
+    //       eskiEtiketHex = hexString.slice(31, 38);
+    //       eskiEtiketmsg = parseInt(eskiEtiketHex, 16);
+    //     }
+    //     mainWindow.webContents.send("tcp", eskiEtiketmsg);
+    //     console.log("TCP MESAJI =>", eskiEtiketmsg);
+    //   }
+    // } else {
     let markerIndex = buffer.indexOf(13);
     if (markerIndex === -1) {
       markerIndex = buffer.indexOf(11);
@@ -228,8 +310,10 @@ function onConnData(d) {
         }
       }
     }
+    // }
   } catch (e) {
     console.error("TCP verisi işlenirken hata:", e);
+    printToAngular("TCP verisi işlenirken hata:", e);
   }
 }
 
@@ -244,6 +328,7 @@ function byteToHex(byte) {
 
 function onConnError(err) {
   console.log("Connection %s error: %s", remoteAddress, err.message);
+  printToAngular("Connection %s error: %s", remoteAddress, err.message);
 }
 
 module.exports = AntenTcp;
