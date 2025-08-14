@@ -87,11 +87,3 @@ autoUpdater.on("update-downloaded", () => {
 });
 
 autoUpdater.on("error", (message) => printToAngular(message));
-
-// function pingHybs() {
-//   setInterval(async () => {
-//     ping.sys.probe(AppConfig.url.split("://")[1], function (isAlive) {
-//       mainWindow.webContents.send("pingHybs", !isAlive);
-//     });
-//   }, 60000);
-// }
