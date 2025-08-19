@@ -54,8 +54,11 @@ export class DashboardComponent implements OnInit {
   public OgsAracId = null;
   public IsOfflineBackUp: boolean;
   public countdown: number = 0;
+  public countplakadown: number = 0;
   public countdownInterval;
+  public countplakadownInterval;
   public clearBelgeTimeout;
+  public clearPlakaTimeout;
 
   form = new FormGroup({
     plakaNo: new FormControl('')
@@ -144,7 +147,7 @@ export class DashboardComponent implements OnInit {
   ngOnDestroy() {
     onScan.detachFrom(document);
     clearInterval(this.setinterval);
-    this.clearInterval();
+    this.clearInterval(3);
   }
 
   // @HostListener('window:keydown', ['$event'])
@@ -412,6 +415,8 @@ export class DashboardComponent implements OnInit {
     this.ddPlaka.f_list.forEach(element => {
       this.ddPlakaBelgeFilter.push(element)
     });
+    this.GecmisIzleme(2);
+
     if (this.OgsAracId != null) {
       this.plakaChange(this.OgsAracId)
     }
@@ -471,7 +476,7 @@ export class DashboardComponent implements OnInit {
         }
 
       }
-      if (this.user.ilid != 1 && arac.IsDaraDegisimi) {
+      if (this.user.ilid != 1 && arac.IsDaraDegisimi && this.formData.AracId != null && this.formData.AracId != this.OgsAracId) {
         Notiflix.Notify.warning('Aracın Darasını Güncelleyiniz')
       }
       if (this.formData.BelgeNo == '' || this.formData.BelgeNo == null) {
@@ -479,15 +484,7 @@ export class DashboardComponent implements OnInit {
         this.barcode = '';
       }
 
-      // if (this.OgsAracId == null) {
-      //   var result = await this.ds.postNoMess(`${this.url}/Harita/GecmisIzlemeKabulParseliBul`, { basTar: new Date(), bitTar: new Date(new Date().getTime() - (5 * 60 * 60 * 1000)), aracTakipId: 'K1200227331', ticket: null });
-      //   if (result.success && this.formData.BelgeNo!="") {
-      //     if (result.data.List[0].BelgeNo != this.formData.BelgeNo) {
-      //       Notiflix.Notify.warning(`${moment(new Date()).format("DD/MM/YYYY")} tarihinde ${result.data.List[0].BelgeNo} numaralı geçiş tespit edilmiştir`)
-      //     }
-      //   }
-      // }
-
+      this.GecmisIzleme(1);
 
 
       this.formData.AracId = aracId;
@@ -495,10 +492,29 @@ export class DashboardComponent implements OnInit {
       this.formData.Dara = arac.Dara;
       this.OgsAracId = null;
 
-
+      this.plakaInterval();
 
     }
   }
+
+  private async GecmisIzleme(type) {
+    if (type === 1 && this.OgsAracId != this.formData.AracId && (this.formData.BelgeNo != null && this.formData.BelgeNo != undefined && this.formData.BelgeNo != "")) {
+      var result = await this.ds.postNoMess(`${this.url}/Harita/GecmisIzlemeKabulParseliBul`, { basTar: new Date("2025-08-01T08:30:06.661Z"), bitTar: new Date("2025-08-01T03:30:06.661Z"), aracTakipId: '163428', ticket: null });
+      if (result.success && result.data.List.length > 0 && result.data.List[0].BelgeNo != this.formData.BelgeNo) {
+        Notiflix.Notify.warning(`${moment(new Date()).format("DD/MM/YYYY")} tarihinde ${result.data.List[0].BelgeNo} numaralı geçiş tespit edilmiştir`)
+        return;
+      }
+    }
+    else if (type === 2 && (this.formData.AracId != null && this.formData.AracId != undefined && this.formData.AracId != "")) {
+      var result = await this.ds.postNoMess(`${this.url}/Harita/GecmisIzlemeKabulParseliBul`, { basTar: new Date("2025-08-01T08:30:06.661Z"), bitTar: new Date("2025-08-01T03:30:06.661Z"), aracTakipId: '163428', ticket: null });
+      if (result.success && result.data.List.length > 0 && result.data.List[0].BelgeNo != this.formData.BelgeNo) {
+        Notiflix.Notify.warning(`${moment(new Date()).format("DD/MM/YYYY")} tarihinde ${result.data.List[0].BelgeNo} numaralı geçiş tespit edilmiştir`)
+        return;
+      }
+    }
+
+  }
+
 
   public async BindForm() {
     this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
@@ -567,15 +583,34 @@ export class DashboardComponent implements OnInit {
   }
 
 
-  public clearInterval() {
-    this.countdown = 0;
-    clearInterval(this.countdownInterval);
-    clearTimeout(this.clearBelgeTimeout);
+  public clearInterval(type) {
+    if (type === 1) {
+      this.countdown = 0;
+      clearInterval(this.countdownInterval);
+      clearTimeout(this.clearBelgeTimeout);
+      return;
+    }
+    else if (type === 2) {
+      this.countplakadown = 0;
+      clearInterval(this.countplakadownInterval);
+      clearTimeout(this.clearPlakaTimeout);
+      return;
+
+    }
+    else if (type === 3) {
+      this.countdown = 0;
+      clearInterval(this.countdownInterval);
+      clearTimeout(this.clearBelgeTimeout);
+      this.countplakadown = 0;
+      clearInterval(this.countplakadownInterval);
+      clearTimeout(this.clearPlakaTimeout);
+      return;
+    }
 
   }
 
   public belgeInterval() {
-    this.clearInterval();
+    this.clearInterval(1);
     this.countdown = 30;
 
     this.countdownInterval = setInterval(() => {
@@ -592,6 +627,25 @@ export class DashboardComponent implements OnInit {
       Notiflix.Notify.warning("Barkodu Tekrar Okutmanız Gerekmektedir.")
     }, 30000);
   }
+
+  public plakaInterval() {
+    this.clearInterval(2);
+    this.countplakadown = 15;
+
+    this.countplakadownInterval = setInterval(() => {
+      this.countplakadown--;
+      if (this.countplakadown <= 0) {
+        clearInterval(this.countplakadownInterval);
+      }
+    }, 1000);
+
+    this.clearBelgeTimeout = setTimeout(() => {
+      this.formData.AracId = null;
+      this.formData.Dara = 0;
+      this.countplakadown = 0;
+    }, 15000);
+  }
+
   public initializeFormData() {
     this.formData = {};
     this.formData.BarkodNo = '';
@@ -761,12 +815,7 @@ export class DashboardComponent implements OnInit {
     const component = DashboardComponent.componentInstance;
     var arac = component.ddTumPlakalar.filter(x => x.OGSEtiket == data)[0];
     if (arac == undefined) {
-      component.formData.AracId = null;
-      component.formData.Dara = 0;
-      component.ref.detectChanges();
-
       return;
-
     }
     component.OgsAracId = arac.AracId;
     component.plakaChange(arac.AracId);
@@ -859,7 +908,7 @@ export class DashboardComponent implements OnInit {
       }
       this.initializeFormData();
 
-      this.clearInterval();
+      this.clearInterval(3);
     }
   }
 

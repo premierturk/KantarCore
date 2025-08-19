@@ -244,9 +244,13 @@ function onConnData(d) {
         ) {
           eskiEtiketHex = hexString.slice(31, 38);
           eskiEtiketmsg = parseInt(eskiEtiketHex, 16);
+          mainWindow.webContents.send("tcp", eskiEtiketmsg);
+          console.log("TCP MESAJI =>", eskiEtiketmsg);
         }
-        mainWindow.webContents.send("tcp", eskiEtiketmsg);
-        console.log("TCP MESAJI =>", eskiEtiketmsg);
+        if (String(eskiEtiketmsg).startsWith("1001")) {
+          mainWindow.webContents.send("tcp", eskiEtiketmsg);
+          console.log("TCP MESAJI =>", eskiEtiketmsg);
+        }
       }
     } else {
       let markerIndex = buffer.indexOf(13);

@@ -372,8 +372,9 @@
     style="padding: 0px 5px"
   >
     <div class="modal-body" style="padding: 5px">
-      <div class="mb-2">
+      <div class="mb-2 countdown-wrapper">
         <label>Plaka</label>
+
         <form [formGroup]="form">
           <kendo-dropdownlist
             [disabled]="plakaDisable"
@@ -394,6 +395,9 @@
           >
           </kendo-dropdownlist>
         </form>
+        <div *ngIf="countplakadown > 0" class="countdown-badge">
+          {{ countplakadown }}
+        </div>
       </div>
       <div class="mb-2 position-relative countdown-wrapper">
         <label>Belge No</label>
