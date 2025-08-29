@@ -46,7 +46,6 @@ function onReady() {
 
   setTimeout(() => {
     autoUpdater.checkForUpdates();
-    // pingHybs();
   }, 4000);
 }
 //app

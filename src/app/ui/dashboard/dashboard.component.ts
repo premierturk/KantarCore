@@ -27,7 +27,6 @@ export class DashboardComponent implements OnInit {
   public list: any[] = [];
   public listEnSon: any[] = [];
   public tasimaKabulListesi: any[] = [];
-  public speedTest;
   public ddPlakaBelgeFilter: any[] = [];
   public ddTumPlakalar: any[] = [];
   public kamuFisListesi: any[] = [];
@@ -51,6 +50,7 @@ export class DashboardComponent implements OnInit {
   public raporTuru: any = { kamufis: true, dokumfisi: true, ozel: true, manueldokum: false, gerikazanim: false, evsel: false, sanayi: false };
   public user = JSON.parse(window.localStorage.getItem('user'));
   public setinterval;
+  public speedTestInterval;
   public OgsAracId = null;
   public IsOfflineBackUp: boolean;
   public countdown: number = 0;
@@ -147,6 +147,7 @@ export class DashboardComponent implements OnInit {
   ngOnDestroy() {
     onScan.detachFrom(document);
     clearInterval(this.setinterval);
+    clearInterval(this.speedTestInterval)
     this.clearInterval(3);
   }
 
@@ -183,6 +184,10 @@ export class DashboardComponent implements OnInit {
 
           this.formData.FirmaAdi = kamuFis.data.FirmaAdi;
           this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kamuFis.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
+          if (this.formData.AracId != null && (kamuFis.data.Araclar.filter(x => x.AracId == this.formData.AracId)[0] == null)) {
+            this.formData.AracId = null;
+            this.formData.Dara = 0
+          }
           this.belgeInterval();
 
         }
@@ -247,6 +252,10 @@ export class DashboardComponent implements OnInit {
           if (kabulListesiSorgu.success) {
             if (this.user.ilid !== 57) {
               this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kabulListesiSorgu.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
+              if (this.formData.AracId != null && (kabulListesiSorgu.data.Araclar.filter(x => x.AracId == this.formData.AracId)[0] == null)) {
+                this.formData.AracId = null;
+                this.formData.Dara = 0
+              }
             }
             this.formData.FirmaAdi = kabulListesiSorgu.data.FirmaAdi;
             this.belgeInterval();
@@ -304,6 +313,10 @@ export class DashboardComponent implements OnInit {
           this.formData.BelgeNo = barkodKontrol;
           this.formData.BarkodNo = barkodKontrol;
           this.ddPlaka.f_list = this.ddPlaka.list.filter(x => nakitDokum.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
+          if (this.formData.AracId != null && (nakitDokum.data.Araclar.filter(x => x.AracId == this.formData.AracId)[0] == null)) {
+            this.formData.AracId = null;
+            this.formData.Dara = 0
+          }
           this.formData.FirmaAdi = nakitDokum.data.FirmaAdi;
           this.belgeInterval();
 
@@ -344,6 +357,10 @@ export class DashboardComponent implements OnInit {
           var kabulListesiSorgu = await this.ds.post(`${this.url}/kantar/KabulBelgesiKontrolV2`, { 'BelgeNo': barkodBelge, 'BarkodNo': barkodKontrol });
           if (kabulListesiSorgu.success) {
             this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kabulListesiSorgu.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
+            if (this.formData.AracId != null && (kabulListesiSorgu.data.Araclar.filter(x => x.AracId == this.formData.AracId)[0] == null)) {
+              this.formData.AracId = null;
+              this.formData.Dara = 0
+            }
             this.formData.FirmaAdi = kabulListesiSorgu.data.FirmaAdi;
             this.belgeInterval();
 
@@ -398,6 +415,10 @@ export class DashboardComponent implements OnInit {
           this.formData.BelgeNo = barkodKontrol;
           this.formData.BarkodNo = barkodKontrol;
           this.ddPlaka.f_list = this.ddPlaka.list.filter(x => nakitDokum.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
+          if (this.formData.AracId != null && (nakitDokum.data.Araclar.filter(x => x.AracId == this.formData.AracId)[0] == null)) {
+            this.formData.AracId = null;
+            this.formData.Dara = 0
+          }
           this.formData.FirmaAdi = nakitDokum.data.FirmaAdi;
           this.belgeInterval();
 
@@ -498,23 +519,56 @@ export class DashboardComponent implements OnInit {
   }
 
   private async GecmisIzleme(type) {
-    if (type === 1 && this.OgsAracId != this.formData.AracId && (this.formData.BelgeNo != null && this.formData.BelgeNo != undefined && this.formData.BelgeNo != "")) {
-      var result = await this.ds.postNoMess(`${this.url}/Harita/GecmisIzlemeKabulParseliBul`, { basTar: new Date("2025-08-01T08:30:06.661Z"), bitTar: new Date("2025-08-01T03:30:06.661Z"), aracTakipId: '163428', ticket: null });
-      if (result.success && result.data.List.length > 0 && result.data.List[0].BelgeNo != this.formData.BelgeNo) {
-        Notiflix.Notify.warning(`${moment(new Date()).format("DD/MM/YYYY")} tarihinde ${result.data.List[0].BelgeNo} numaralı geçiş tespit edilmiştir`)
-        return;
-      }
+    if (type === 1 && (this.OgsAracId == this.formData.AracId || (this.formData.BelgeNo == null || this.formData.BelgeNo == undefined || this.formData.BelgeNo == ""))) {
+      return;
     }
-    else if (type === 2 && (this.formData.AracId != null && this.formData.AracId != undefined && this.formData.AracId != "")) {
-      var result = await this.ds.postNoMess(`${this.url}/Harita/GecmisIzlemeKabulParseliBul`, { basTar: new Date("2025-08-01T08:30:06.661Z"), bitTar: new Date("2025-08-01T03:30:06.661Z"), aracTakipId: '163428', ticket: null });
-      if (result.success && result.data.List.length > 0 && result.data.List[0].BelgeNo != this.formData.BelgeNo) {
-        Notiflix.Notify.warning(`${moment(new Date()).format("DD/MM/YYYY")} tarihinde ${result.data.List[0].BelgeNo} numaralı geçiş tespit edilmiştir`)
-        return;
-      }
+    else if (type === 2 && (this.formData.AracId == null || this.formData.AracId == undefined || this.formData.AracId == "")) {
+      return;
+    }
+    const arac = this.ddPlaka.list.filter((x) => x.AracId == this.formData.AracId)[0];
+    var result = await this.ds.postNoMess(`${this.url}/Harita/GecmisIzlemeKabulParseliBul`, { basTar: moment(), bitTar: moment().subtract(1, 'hours'), aracTakipId: arac?.AracTakipId, ticket: null });
+    if (result.success && result.data.List.length > 0 && result.data.List[0].BelgeNo != this.formData.BelgeNo) {
+      Notiflix.Notify.warning(`${moment(new Date()).format("DD/MM/YYYY")} tarihinde ${result.data.List[0].BelgeNo} numaralı geçiş tespit edilmiştir`)
+
+      await this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${result.data.List[0].BelgeNo} nolu belge geçişi beklenirken ${this.formData.BelgeNo} nolu belge ile geçiş yapılmaya çalışıldı&logType=Kantar Belge Uyarısı&data=null`, { referanceId: 0, logText: `${result.data.List[0].BelgeNo} nolu belge geçişi beklenirken ${this.formData.BelgeNo} nolu belge ile geçiş yapılmaya çalışıldı`, logType: 'Kantar Belge Uyarısı', data: null })
+      return;
     }
 
   }
 
+
+  public async SpeedTest() {
+
+    const speedTestMbps = async () => {
+      try {
+        const basTar = performance.now();
+        var offlinespeed = await this.ds.get(`${this.url}/donw10mb`);
+        const bitTar = performance.now();
+        const apiSaniye = (bitTar - basTar) / 1000;
+        const dosyaBoyut = 10 * 1024 * 1024;  // 10mb dosyayı byte a çeviriyorum
+        const mbpsHesap = (dosyaBoyut * 8) / (1000 * 1000); // megabite çeviriyorum
+        const speedMbps = mbpsHesap / apiSaniye;
+
+        console.log(`İndirme hızı: ${speedMbps.toFixed(2)} Mbps`);
+
+        await this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir&logType=Kantar Speed Test Hesabı&data=null`, {
+          referanceId: 0,
+          logText: `${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir`,
+          logType: 'Kantar Speed Test Hesabı',
+          data: null
+        });
+      } catch (error) {
+        console.error("Hız testi sırasında bir hata oluştu:", error);
+        await this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=Hız testi sırasında hata oluştu: ${error.message}&logType=Kantar Speed Test Hata&data=null`, {
+          referanceId: 0,
+          logText: `Hız testi sırasında hata oluştu: ${error.message}`,
+          logType: 'Kantar Speed Test Hata',
+          data: null
+        });
+      }
+    };
+    this.speedTestInterval = setInterval(speedTestMbps, 3600000);
+  }
 
   public async BindForm() {
     this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
@@ -540,7 +594,7 @@ export class DashboardComponent implements OnInit {
       console.clear();
     }, 60000);
 
-
+    this.SpeedTest();
   }
 
   public async BindGrid() {
@@ -818,8 +872,11 @@ export class DashboardComponent implements OnInit {
       return;
     }
     component.OgsAracId = arac.AracId;
-    component.plakaChange(arac.AracId);
-    component.ref.detectChanges();
+    if (this.formData.AracId != arac.AracId) {
+      component.plakaChange(arac.AracId);
+      component.ref.detectChanges();
+    }
+
 
   }
 

@@ -19,8 +19,12 @@ class AntenTcp {
   static createServer() {
     initializeMainJsVariables();
     if (AppConfig.antenTip == "hopland") {
+      console.log("Sunucuya baglanildi hopland!");
+      printToAngular("Sunucuya baglanildi hopland!");
       this.connectToHopland();
     } else {
+      console.log("Sunucuya baglanildi takipsan!");
+      printToAngular("Sunucuya baglanildi takipsan!");
       var server = net.createServer();
 
       server.on("connection", this.handleConnection);
@@ -39,9 +43,15 @@ class AntenTcp {
           console.log("Sunucuya baglanildi!");
           printToAngular("Sunucuya baglanildi!");
           AntenTcp.connection = client;
+          console.log("Sunucuya baglanildi!");
+          printToAngular("Sunucuya baglanildi!");
         }
       );
       client.on("data", (data) => {
+        printToAngular("data geldi", data);
+        printToAngular("data geldi" + data);
+        console.log("data geldi" + data);
+        console.log("data geldi", data);
         onConnData(data);
       });
 
@@ -66,6 +76,7 @@ class AntenTcp {
         AntenTcp.connection = null;
       });
     } catch (error) {
+      console.log("Beklenmeyen Hata Olustu !");
       printToAngular("Beklenmeyen Hata Olustu !");
     }
   }
@@ -223,94 +234,110 @@ class AntenTcp {
 // }
 
 function onConnData(d) {
-  try {
-    const buffer = Buffer.from(d);
-    const hexString = buffer.toString("hex");
+  console.log("baglanildi " + remoteAddress);
+  printToAngular("baglanildi " + remoteAddress);
+  console.log("baglanildi ", remoteAddress);
+  printToAngular("baglanildi ", remoteAddress);
+  const buffer = Buffer.from(d);
+  printToAngular("buffer" + buffer);
+  printToAngular("buffer", buffer);
+  console.log("buffer " + remoteAddress);
+  console.log("buffer ", remoteAddress);
 
-    if (AppConfig.antenTip == "hopland") {
-      const searchStr = "4001";
-      const indexStr = hexString.indexOf(searchStr);
-      if (indexStr !== -1 && buffer.length == 20) {
-        const yeniEtiketmesg = hexString.slice(indexStr, indexStr + 8);
+  const hexString = buffer.toString("hex");
+  printToAngular("mesaj", hexString);
+  if (AppConfig.antenTip == "hopland") {
+    const searchStr = "4001";
+    const indexStr = hexString.indexOf(searchStr);
+    if (indexStr !== -1) {
+      printToAngular("hex slice" + hexString.slice(indexStr, indexStr + 8));
+      console.log("hex slice " + hexString.slice(indexStr, indexStr + 8));
+      printToAngular("hex slice", hexString.slice(indexStr, indexStr + 8));
+      console.log("hex slice ", hexString.slice(indexStr, indexStr + 8));
+      const yeniEtiketmesg = hexString.slice(indexStr, indexStr + 8);
+      printToAngular("yeni etiket" + yeniEtiketmesg);
+      console.log("yeni etiket" + eskiEtiketmsg);
 
-        mainWindow.webContents.send("tcp", yeniEtiketmesg);
-        console.log("TCP MESAJI =>", yeniEtiketmesg);
-      } else {
-        var eskiEtiketHex = hexString.slice(32, 38);
-        var eskiEtiketmsg = parseInt(eskiEtiketHex, 16);
-        if (
-          AppConfig.url.includes("samsun") &&
-          !String(eskiEtiketmsg).startsWith("103")
-        ) {
-          eskiEtiketHex = hexString.slice(31, 38);
-          eskiEtiketmsg = parseInt(eskiEtiketHex, 16);
-          mainWindow.webContents.send("tcp", eskiEtiketmsg);
-          console.log("TCP MESAJI =>", eskiEtiketmsg);
-        }
-        if (String(eskiEtiketmsg).startsWith("1001")) {
-          mainWindow.webContents.send("tcp", eskiEtiketmsg);
-          console.log("TCP MESAJI =>", eskiEtiketmsg);
-        }
-      }
+      mainWindow.webContents.send("tcp", yeniEtiketmesg);
+      console.log("TCP MESAJI =>" + yeniEtiketmesg);
+      printToAngular("TCP MESAJI =>" + yeniEtiketmesg);
+      console.log("TCP MESAJI =>", yeniEtiketmesg);
+      printToAngular("TCP MESAJI =>", yeniEtiketmesg);
     } else {
-      let markerIndex = buffer.indexOf(13);
-      if (markerIndex === -1) {
-        markerIndex = buffer.indexOf(11);
-        if (markerIndex === -1) {
-          buffer.forEach((element) => {
-            tcpmessages.push(element);
-          });
-          return;
-        } else {
-          for (let index = 0; index < markerIndex; index++) {
-            tcpmessages.push(buffer[index]);
-          }
-        }
-      }
-      if (tcpmessages[tcpmessages.length - 4].toString() == "64") {
-        const hex1 = tcpmessages[tcpmessages.length - 1];
-        const hex2 = tcpmessages[tcpmessages.length - 2];
-        const hex3 = tcpmessages[tcpmessages.length - 3];
-        const hex4 = tcpmessages[tcpmessages.length - 4];
-        if (
-          hex1 === undefined ||
-          hex2 === undefined ||
-          hex3 === undefined ||
-          hex4 === undefined
-        ) {
-          return;
-        }
-        const data = (hex4 << 24) | (hex3 << 16) | (hex2 << 8) | hex1;
-        const dataString = data.toString(16).padStart(8, "0");
-        if (dataString.startsWith("4001")) {
-          if (tcpmessages.length > 0) {
-            mainWindow.webContents.send("tcp", dataString);
-            tcpmessages = [];
-            console.log("TCP MESAJI =>", dataString);
-          }
-        }
-      } else {
-        const hex1 = tcpmessages[tcpmessages.length - 1];
-        const hex2 = tcpmessages[tcpmessages.length - 2];
-        const hex3 = tcpmessages[tcpmessages.length - 3];
+      var eskiEtiketHex = hexString.slice(32, 38);
+      var eskiEtiketmsg = parseInt(eskiEtiketHex, 16);
+      printToAngular("eski etiket", eskiEtiketmsg);
+      console.log("eski etiket", eskiEtiketmsg);
 
-        if (hex1 === undefined || hex2 === undefined || hex3 === undefined) {
-          return;
-        }
-        const data = (hex3 << 16) | (hex2 << 8) | hex1;
-        const dataString = data.toString();
-        if (dataString.startsWith("1001")) {
-          if (tcpmessages.length > 0) {
-            mainWindow.webContents.send("tcp", dataString.toString());
-            tcpmessages = [];
-            console.log("TCP MESAJI =>", dataString.toString());
-          }
+      if (
+        AppConfig.url.includes("samsun") &&
+        !String(eskiEtiketmsg).startsWith("103")
+      ) {
+        eskiEtiketHex = hexString.slice(31, 38);
+        eskiEtiketmsg = parseInt(eskiEtiketHex, 16);
+        mainWindow.webContents.send("tcp", eskiEtiketmsg);
+        console.log("TCP MESAJI =>", eskiEtiketmsg);
+      }
+      if (String(eskiEtiketmsg).startsWith("1001")) {
+        mainWindow.webContents.send("tcp", eskiEtiketmsg);
+        console.log("TCP MESAJI =>", eskiEtiketmsg);
+      }
+    }
+  } else {
+    let markerIndex = buffer.indexOf(13);
+    if (markerIndex === -1) {
+      markerIndex = buffer.indexOf(11);
+      if (markerIndex === -1) {
+        buffer.forEach((element) => {
+          tcpmessages.push(element);
+        });
+        return;
+      } else {
+        for (let index = 0; index < markerIndex; index++) {
+          tcpmessages.push(buffer[index]);
         }
       }
     }
-  } catch (e) {
-    console.error("TCP verisi işlenirken hata:", e);
-    printToAngular("TCP verisi işlenirken hata:", e);
+    if (tcpmessages[tcpmessages.length - 4].toString() == "64") {
+      const hex1 = tcpmessages[tcpmessages.length - 1];
+      const hex2 = tcpmessages[tcpmessages.length - 2];
+      const hex3 = tcpmessages[tcpmessages.length - 3];
+      const hex4 = tcpmessages[tcpmessages.length - 4];
+      if (
+        hex1 === undefined ||
+        hex2 === undefined ||
+        hex3 === undefined ||
+        hex4 === undefined
+      ) {
+        return;
+      }
+      const data = (hex4 << 24) | (hex3 << 16) | (hex2 << 8) | hex1;
+      const dataString = data.toString(16).padStart(8, "0");
+      if (dataString.startsWith("4001")) {
+        if (tcpmessages.length > 0) {
+          mainWindow.webContents.send("tcp", dataString);
+          tcpmessages = [];
+          console.log("TCP MESAJI =>", dataString);
+        }
+      }
+    } else {
+      const hex1 = tcpmessages[tcpmessages.length - 1];
+      const hex2 = tcpmessages[tcpmessages.length - 2];
+      const hex3 = tcpmessages[tcpmessages.length - 3];
+
+      if (hex1 === undefined || hex2 === undefined || hex3 === undefined) {
+        return;
+      }
+      const data = (hex3 << 16) | (hex2 << 8) | hex1;
+      const dataString = data.toString();
+      if (dataString.startsWith("1001")) {
+        if (tcpmessages.length > 0) {
+          mainWindow.webContents.send("tcp", dataString.toString());
+          tcpmessages = [];
+          console.log("TCP MESAJI =>", dataString.toString());
+        }
+      }
+    }
   }
 }
 
@@ -324,6 +351,8 @@ function byteToHex(byte) {
 }
 
 function onConnError(err) {
+  console.log("Connection eror");
+  printToAngular("Connection eror");
   console.log("Connection %s error: %s", remoteAddress, err.message);
   printToAngular("Connection %s error: %s", remoteAddress, err.message);
 }
