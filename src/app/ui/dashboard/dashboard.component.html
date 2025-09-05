@@ -373,7 +373,24 @@
   >
     <div class="modal-body" style="padding: 5px">
       <div class="mb-2 countdown-wrapper">
-        <label>Plaka</label>
+        <div class="col">
+          <div class="row">
+            <label>Plaka</label>
+            <div
+              *ngIf="this.isPulsingGreen"
+              [ngStyle]="{
+                'background-color': '#7feb7f',
+                border: '1px solid gray'
+              }"
+              style="
+                margin-left: 2%;
+                width: 4%;
+                height: 17px;
+                border-radius: 70%;
+              "
+            ></div>
+          </div>
+        </div>
 
         <form [formGroup]="form">
           <kendo-dropdownlist
@@ -399,6 +416,11 @@
           {{ countplakadown }}
         </div>
       </div>
+      <label
+        *ngIf="OgsAracMatch != ''"
+        class="mt-2 text-danger font-weight-bold"
+        >{{ OgsAracMatch }}</label
+      >
       <div class="mb-2 position-relative countdown-wrapper">
         <label>Belge No</label>
         <kendo-textbox
@@ -469,7 +491,12 @@
       <button
         class="btn btn-success"
         (click)="save()"
-        [disabled]="formData.FirmaAdi == '' || !aracTakipKontrol || isLoading"
+        [disabled]="
+          formData.FirmaAdi == null ||
+          formData.AracId == null ||
+          !aracTakipKontrol ||
+          isLoading
+        "
       >
         Kaydet
       </button>

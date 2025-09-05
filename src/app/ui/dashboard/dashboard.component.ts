@@ -38,7 +38,7 @@ export class DashboardComponent implements OnInit {
   public ddPlaka: DropdownProps = new DropdownProps();
   public ddFirma: DropdownProps = new DropdownProps();
   public formData: any;
-  private emptyFormData: any = { FirmaAdi: '', Tonaj: 0, BelgeNo: '', Dara: 0, Aciklama: '' };
+  private emptyFormData: any = { FirmaAdi: null, Tonaj: 0, BelgeNo: '', Dara: 0, Aciklama: '' };
   public total: any = { "Tonaj": { "sum": 0 }, "Tutar": { "sum": 0 } };
   public basTar: Date;
   public bitTar: Date;
@@ -51,7 +51,9 @@ export class DashboardComponent implements OnInit {
   public user = JSON.parse(window.localStorage.getItem('user'));
   public setinterval;
   public speedTestInterval;
+  public tcpInterval;
   public OgsAracId = null;
+  public OgsAracMatch = '';
   public IsOfflineBackUp: boolean;
   public countdown: number = 0;
   public countplakadown: number = 0;
@@ -59,6 +61,8 @@ export class DashboardComponent implements OnInit {
   public countplakadownInterval;
   public clearBelgeTimeout;
   public clearPlakaTimeout;
+  public isPulsingGreen: boolean = false;
+
 
   form = new FormGroup({
     plakaNo: new FormControl('')
@@ -98,16 +102,11 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     this.initializeFormData();
 
-
-
-
     var now = new Date();
     this.basTar = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     this.bitTar = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     this.afterInit();
-
-
 
   }
 
@@ -125,7 +124,6 @@ export class DashboardComponent implements OnInit {
         component.belgeNoFromBarcode(sScanned);
         component.ref.detectChanges();
       },
-
       minLength: 2,
       preventKeyboardDefault: true,
       keyCodeMapper: function (oEvent) {
@@ -148,7 +146,7 @@ export class DashboardComponent implements OnInit {
     onScan.detachFrom(document);
     clearInterval(this.setinterval);
     clearInterval(this.speedTestInterval)
-    this.clearInterval(3);
+    this.Intervalclear(3);
   }
 
   // @HostListener('window:keydown', ['$event'])
@@ -182,18 +180,19 @@ export class DashboardComponent implements OnInit {
         var kamuFis = await this.ds.post(`${this.url}/kantar/KamuFisKontrol`, { "FisTeslimId": parseInt(fisTeslimId.split('-')[1]) });
         if (kamuFis.success) {
 
-          this.formData.FirmaAdi = kamuFis.data.FirmaAdi;
           this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kamuFis.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
           if (this.formData.AracId != null && (kamuFis.data.Araclar.filter(x => x.AracId == this.formData.AracId)[0] == null)) {
             this.formData.AracId = null;
             this.formData.Dara = 0
+            this.Intervalclear(2)
           }
           this.belgeInterval();
+          this.formData.FirmaAdi = kamuFis.data.FirmaAdi;
 
         }
         else {
           this.ddPlaka.f_list = [];
-          this.formData.FirmaAdi = '';
+          this.formData.FirmaAdi = null;
           this.formData.Dara = 0;
           this.formData.BarkodNo = '';
           this.barcode = '';
@@ -203,14 +202,13 @@ export class DashboardComponent implements OnInit {
         var kamuFisListesi = this.kamuFisListesi.filter(x => x.FisTeslimId == fisTeslimId.split('-')[1])[0];
         if (kamuFisListesi != undefined && kamuFisListesi != null) {
           this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kamuFisListesi.Araclar.some(a => a.AracId == x.AracId))
-          this.formData.FirmaAdi = this.ddFirma.f_list.filter(x => x.FirmaId == kamuFisListesi.FirmaId)[0].FirmaAdi;
           this.belgeInterval();
+          this.formData.FirmaAdi = this.ddFirma.f_list.filter(x => x.FirmaId == kamuFisListesi.FirmaId)[0].FirmaAdi;
 
         }
         else {
           this.ddPlaka.f_list = [];
-          this.formData.FirmaAdi = '';
-          this.formData.Dara = 0;
+          this.formData.FirmaAdi = null;
           this.formData.BarkodNo = '';
           this.barcode = '';
           Notiflix.Notify.failure("HATALI/KULLANILMIŞ KAMUFİŞ NO")
@@ -232,14 +230,14 @@ export class DashboardComponent implements OnInit {
           if (this.user.ilid !== 57) {
             this.ddPlaka.f_list = this.ddPlaka.list.filter(x => tasimaKabulKontrol.IlceBelediyeler_TasimaKabul_Araclar.some(a => a.PlakaNo == x.PlakaNo))
           }
-          this.formData.FirmaAdi = tasimaKabulKontrol.FirmaAdi;
           this.belgeInterval();
+          this.formData.FirmaAdi = tasimaKabulKontrol.FirmaAdi;
 
         }
         else {
           this.formData.BarkodNo = '';
           this.barcode = '';
-          this.formData.FirmaAdi = '';
+          this.formData.FirmaAdi = null;
           this.formData.Dara = 0;
           Notiflix.Notify.failure('Belge Bulunamadı.');
           return;
@@ -255,10 +253,11 @@ export class DashboardComponent implements OnInit {
               if (this.formData.AracId != null && (kabulListesiSorgu.data.Araclar.filter(x => x.AracId == this.formData.AracId)[0] == null)) {
                 this.formData.AracId = null;
                 this.formData.Dara = 0
+                this.Intervalclear(2)
               }
             }
-            this.formData.FirmaAdi = kabulListesiSorgu.data.FirmaAdi;
             this.belgeInterval();
+            this.formData.FirmaAdi = kabulListesiSorgu.data.FirmaAdi;
 
           }
           else {
@@ -266,8 +265,7 @@ export class DashboardComponent implements OnInit {
             this.formData.BarkodNo = '';
             this.formData.BelgeNo = '';
             this.barcode = '';
-            this.formData.FirmaAdi = '';
-            this.formData.Dara = 0;
+            this.formData.FirmaAdi = null;
             return;
           }
 
@@ -300,9 +298,9 @@ export class DashboardComponent implements OnInit {
             return;
           }
           this.ddPlaka.f_list = this.ddPlaka.list.filter(x => arac.some(a => a.PlakaNo == x.PlakaNo))
+          this.belgeInterval();
           this.formData.BelgeNo = barkodKontrol;
           this.formData.FirmaAdi = firma.FirmaAdi;
-          this.belgeInterval();
 
         }
 
@@ -316,17 +314,17 @@ export class DashboardComponent implements OnInit {
           if (this.formData.AracId != null && (nakitDokum.data.Araclar.filter(x => x.AracId == this.formData.AracId)[0] == null)) {
             this.formData.AracId = null;
             this.formData.Dara = 0
+            this.Intervalclear(2)
           }
-          this.formData.FirmaAdi = nakitDokum.data.FirmaAdi;
           this.belgeInterval();
+          this.formData.FirmaAdi = nakitDokum.data.FirmaAdi;
 
         }
         else {
           this.formData.BarkodNo = '';
           this.formData.BelgeNo = '';
           this.barcode = '';
-          this.formData.FirmaAdi = '';
-          this.formData.Dara = 0;
+          this.formData.FirmaAdi = null;
         }
       }
 
@@ -338,15 +336,15 @@ export class DashboardComponent implements OnInit {
         var tasimaKabulKontrol = this.tasimaKabulListesi.filter(x => x.BelgeNo == barkodKontrol)[0];
         if (tasimaKabulKontrol != undefined && tasimaKabulKontrol != null) {
           this.ddPlaka.f_list = this.ddPlaka.list.filter(x => tasimaKabulKontrol.IlceBelediyeler_TasimaKabul_Araclar.some(a => a.PlakaNo == x.PlakaNo))
-          this.formData.FirmaAdi = tasimaKabulKontrol.FirmaAdi;
           this.belgeInterval();
+          this.formData.FirmaAdi = tasimaKabulKontrol.FirmaAdi;
 
 
         }
         else {
           this.formData.BarkodNo = '';
           this.barcode = '';
-          this.formData.FirmaAdi = '';
+          this.formData.FirmaAdi = null;
           this.formData.Dara = 0;
           Notiflix.Notify.failure('Belge Bulunamadı.');
           return;
@@ -360,9 +358,11 @@ export class DashboardComponent implements OnInit {
             if (this.formData.AracId != null && (kabulListesiSorgu.data.Araclar.filter(x => x.AracId == this.formData.AracId)[0] == null)) {
               this.formData.AracId = null;
               this.formData.Dara = 0
+              this.Intervalclear(2)
+
             }
-            this.formData.FirmaAdi = kabulListesiSorgu.data.FirmaAdi;
             this.belgeInterval();
+            this.formData.FirmaAdi = kabulListesiSorgu.data.FirmaAdi;
 
           }
           else {
@@ -370,8 +370,7 @@ export class DashboardComponent implements OnInit {
             this.formData.BarkodNo = '';
             this.formData.BelgeNo = '';
             this.barcode = '';
-            this.formData.FirmaAdi = '';
-            this.formData.Dara = 0;
+            this.formData.FirmaAdi = null;
             return;
           }
         }
@@ -401,9 +400,9 @@ export class DashboardComponent implements OnInit {
             return;
           }
           this.ddPlaka.f_list = this.ddPlaka.list.filter(x => arac.some(a => a.PlakaNo == x.PlakaNo))
+          this.belgeInterval();
           this.formData.BelgeNo = barkodKontrol;
           this.formData.FirmaAdi = firma.FirmaAdi;
-          this.belgeInterval();
 
 
         }
@@ -418,9 +417,11 @@ export class DashboardComponent implements OnInit {
           if (this.formData.AracId != null && (nakitDokum.data.Araclar.filter(x => x.AracId == this.formData.AracId)[0] == null)) {
             this.formData.AracId = null;
             this.formData.Dara = 0
+            this.Intervalclear(2)
+
           }
-          this.formData.FirmaAdi = nakitDokum.data.FirmaAdi;
           this.belgeInterval();
+          this.formData.FirmaAdi = nakitDokum.data.FirmaAdi;
 
 
         }
@@ -428,8 +429,7 @@ export class DashboardComponent implements OnInit {
           this.formData.BarkodNo = '';
           this.formData.BelgeNo = '';
           this.barcode = '';
-          this.formData.FirmaAdi = '';
-          this.formData.Dara = 0;
+          this.formData.FirmaAdi = null;
         }
       }
     }
@@ -463,22 +463,37 @@ export class DashboardComponent implements OnInit {
 
   public plakaChange(aracId) {
     const arac = this.ddPlaka.list.filter((x) => x.AracId == aracId)[0];
-    var aracEkliMi = this.ddPlaka.f_list.filter(x => x.AracId == arac.AracId)[0];
-    if (aracEkliMi == null || aracEkliMi == undefined) {
-      this.ddPlaka.f_list.push(arac);
-    }
+
     if (arac != undefined && arac != null) {
+      var aracEkliMi = this.ddPlaka.f_list.filter(x => x.AracId == arac.AracId)[0];
+      if (aracEkliMi == null || aracEkliMi == undefined) {
+        if (this.user.ilid === 57) {
+          this.ddPlaka.f_list.push(arac);
+        }
+        else {
+          this.formData.AracId = null;
+          this.formData.Dara = 0;
+          return;
+        }
+
+      }
+
 
       if (this.barkodTuru == "Nakit Döküm" && this.formData.Tonaj > 80000) {
         if (!arac.AracTakipVarmi) {
           Notiflix.Notify.failure("Araç Takip Sözleşmesi Yoktur.")
           this.aracTakipKontrol = false;
+          this.formData.AracId = null;
+          this.formData.Dara = 0;
+          this.Intervalclear(2);
           return;
-
         }
         else if (arac.TasimaIzinAktif == "Pasif") {
           Notiflix.Notify.failure("Taşıma İzin Süresi Dolmuştur")
           this.aracTakipKontrol = false;
+          this.formData.AracId = null;
+          this.formData.Dara = 0;
+          this.Intervalclear(2);
           return;
         }
 
@@ -487,19 +502,28 @@ export class DashboardComponent implements OnInit {
         if (!arac.AracTakipVarmi) {
           Notiflix.Notify.failure("Araç Takip Sözleşmesi Yoktur.")
           this.aracTakipKontrol = false;
+          this.formData.AracId = null;
+          this.formData.Dara = 0;
+          this.Intervalclear(2);
           return;
 
         }
         else if (arac.TasimaIzinAktif == "Pasif") {
           Notiflix.Notify.failure("Taşıma İzin Süresi Dolmuştur")
           this.aracTakipKontrol = false;
+          this.formData.AracId = null;
+          this.formData.Dara = 0;
+          this.Intervalclear(2);
           return;
         }
 
       }
+
+
       if (this.user.ilid != 1 && arac.IsDaraDegisimi && this.formData.AracId != null && this.formData.AracId != this.OgsAracId) {
         Notiflix.Notify.warning('Aracın Darasını Güncelleyiniz')
       }
+
       if (this.formData.BelgeNo == '' || this.formData.BelgeNo == null) {
         this.formData.BarkodNo = '';
         this.barcode = '';
@@ -507,22 +531,23 @@ export class DashboardComponent implements OnInit {
 
       this.GecmisIzleme(1);
 
+      this.plakaInterval();
+
 
       this.formData.AracId = aracId;
       this.aracTakipKontrol = true;
       this.formData.Dara = arac.Dara;
       this.OgsAracId = null;
 
-      this.plakaInterval();
 
     }
   }
 
   private async GecmisIzleme(type) {
-    if (type === 1 && (this.OgsAracId == this.formData.AracId || (this.formData.BelgeNo == null || this.formData.BelgeNo == undefined || this.formData.BelgeNo == ""))) {
+    if (type === 1 && (this.OgsAracId == this.formData.AracId || this.formData.BelgeNo == null)) {
       return;
     }
-    else if (type === 2 && (this.formData.AracId == null || this.formData.AracId == undefined || this.formData.AracId == "")) {
+    else if (type === 2 && this.formData.AracId == null) {
       return;
     }
     const arac = this.ddPlaka.list.filter((x) => x.AracId == this.formData.AracId)[0];
@@ -594,6 +619,12 @@ export class DashboardComponent implements OnInit {
       console.clear();
     }, 60000);
 
+
+    this.tcpInterval = setInterval(() => {
+      this._electronService.ipcRenderer.send('tcprestart');
+    }, 20000);
+
+
     this.SpeedTest();
   }
 
@@ -637,67 +668,61 @@ export class DashboardComponent implements OnInit {
   }
 
 
-  public clearInterval(type) {
+  public Intervalclear(type) {
     if (type === 1) {
+      this.formData.BelgeNo = '';
+      this.formData.FirmaAdi = null;
       this.countdown = 0;
       clearInterval(this.countdownInterval);
-      clearTimeout(this.clearBelgeTimeout);
+
       return;
     }
     else if (type === 2) {
+      this.formData.AracId = null;
+      this.formData.Dara = 0;
       this.countplakadown = 0;
       clearInterval(this.countplakadownInterval);
-      clearTimeout(this.clearPlakaTimeout);
       return;
 
     }
     else if (type === 3) {
+
+      this.formData.BelgeNo = '';
+      this.formData.FirmaAdi = null;
       this.countdown = 0;
-      clearInterval(this.countdownInterval);
-      clearTimeout(this.clearBelgeTimeout);
+      this.formData.AracId = null;
+      this.formData.Dara = 0;
       this.countplakadown = 0;
+      clearInterval(this.countdownInterval);
       clearInterval(this.countplakadownInterval);
-      clearTimeout(this.clearPlakaTimeout);
       return;
     }
 
   }
 
   public belgeInterval() {
-    this.clearInterval(1);
+    this.Intervalclear(1);
     this.countdown = 30;
-
     this.countdownInterval = setInterval(() => {
       this.countdown--;
       if (this.countdown <= 0) {
-        clearInterval(this.countdownInterval);
+        this.Intervalclear(1);
       }
     }, 1000);
-
-    this.clearBelgeTimeout = setTimeout(() => {
-      this.formData.BelgeNo = '';
-      this.formData.FirmaAdi = null;
-      this.countdown = 0;
-      Notiflix.Notify.warning("Barkodu Tekrar Okutmanız Gerekmektedir.")
-    }, 30000);
   }
 
   public plakaInterval() {
-    this.clearInterval(2);
-    this.countplakadown = 15;
-
+    this.Intervalclear(2);
+    this.countplakadown = 30;
     this.countplakadownInterval = setInterval(() => {
       this.countplakadown--;
+      this.ref.detectChanges();
       if (this.countplakadown <= 0) {
-        clearInterval(this.countplakadownInterval);
+        this.OgsAracMatch = '';
+        this.Intervalclear(2);
+        this.ref.detectChanges();
       }
     }, 1000);
-
-    this.clearBelgeTimeout = setTimeout(() => {
-      this.formData.AracId = null;
-      this.formData.Dara = 0;
-      this.countplakadown = 0;
-    }, 15000);
   }
 
   public initializeFormData() {
@@ -866,23 +891,36 @@ export class DashboardComponent implements OnInit {
 
   onDataTcp(event, data) {
     console.log("OGS Etiket Data: " + data);
+
     const component = DashboardComponent.componentInstance;
+
+    component.isPulsingGreen = true;
+    component.ref.detectChanges();
+
+    setTimeout(() => {
+      component.isPulsingGreen = false;
+      component.ref.detectChanges();
+    }, 500);
+
     var arac = component.ddTumPlakalar.filter(x => x.OGSEtiket == data)[0];
-    if (arac == undefined) {
+    if (!arac) {
+      component.OgsAracMatch = `*Okunan Etiket (${data}) - Eşleşen Plaka Bulunamadı`
+      component.ref.detectChanges();
       return;
     }
     component.OgsAracId = arac.AracId;
-    if (this.formData.AracId != arac.AracId) {
+    component.OgsAracMatch = `*Okunan Etiket (${data}) - Eşleşen Plaka (${arac.PlakaNo})`
+
+    if (component.formData.AracId == null || component.formData.AracId != arac.AracId) {
       component.plakaChange(arac.AracId);
       component.ref.detectChanges();
+      return;
     }
-
-
   }
 
   async daraGuncelle() {
 
-    if (this.formData.AracId == null || this.formData.AracId == undefined || this.formData.Tonaj == null || this.formData.Tonaj < 1) {
+    if (this.formData.AracId == null || this.formData.Tonaj == null || this.formData.Tonaj < 1) {
       Notiflix.Notify.failure('Araç veya tonaj bilgisi alınamadı!');
       return;
     }
@@ -956,6 +994,7 @@ export class DashboardComponent implements OnInit {
         if (this.barkodTuru != "Kamu Fiş") {
           this.responseToPrint(result.data);
         }
+        this._electronService.ipcRenderer.send('tcprestart');
         this.formData.BarkodNo = '';
         this.barcode = '';
         this.IsOfflineBackUp = this.formData.IsOffline;
@@ -963,13 +1002,14 @@ export class DashboardComponent implements OnInit {
         this.BindGrid();
 
       }
+      this.OgsAracMatch = '';
+
+      this.Intervalclear(3);
+
       this.initializeFormData();
 
-      this.clearInterval(3);
     }
   }
-
-
 
   public validations(): string {
 

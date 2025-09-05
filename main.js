@@ -64,6 +64,8 @@ ipcMain.on("bariyer", AntenTcp.openBariyer);
 
 ipcMain.on("kantarConfig", AppConfig.update);
 
+ipcMain.on("tcprestart", AntenTcp.connectToHopland);
+
 //autoUpdater
 autoUpdater.on("update-available", () => {
   mainWindow.webContents.send("update_available");
