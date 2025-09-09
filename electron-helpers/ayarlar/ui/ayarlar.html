@@ -99,6 +99,16 @@
           ng-model="kantarConfig.antenport"
         />
       </div>
+      <div class="row input-row" ng-if="kantarConfig.antenTip === 'hopland'">
+        <label class="col-xs-3 form-label">Anten Restart:</label>
+        <button
+          class="btn btn-primary"
+          ng-click="restart()"
+          style="margin-top: 5px"
+        >
+          Restart
+        </button>
+      </div>
       <hr />
 
       <h4><i class="glyphicon glyphicon-asterisk"></i> Seri Port</h4>

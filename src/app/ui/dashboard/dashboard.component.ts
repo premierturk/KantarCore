@@ -308,6 +308,7 @@ export class DashboardComponent implements OnInit {
       else {
         var nakitDokum = await this.ds.post(`${this.url}/kantar/NakitDokumKontrol`, { 'BelgeNo': firmId });
         if (nakitDokum.success) {
+          this.belgeInterval();
           this.formData.BelgeNo = barkodKontrol;
           this.formData.BarkodNo = barkodKontrol;
           this.ddPlaka.f_list = this.ddPlaka.list.filter(x => nakitDokum.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
@@ -316,7 +317,6 @@ export class DashboardComponent implements OnInit {
             this.formData.Dara = 0
             this.Intervalclear(2)
           }
-          this.belgeInterval();
           this.formData.FirmaAdi = nakitDokum.data.FirmaAdi;
 
         }
@@ -411,6 +411,7 @@ export class DashboardComponent implements OnInit {
       else {
         var nakitDokum = await this.ds.post(`${this.url}/kantar/NakitDokumKontrol`, { 'BelgeNo': barkodKontrol });
         if (nakitDokum.success) {
+          this.belgeInterval();
           this.formData.BelgeNo = barkodKontrol;
           this.formData.BarkodNo = barkodKontrol;
           this.ddPlaka.f_list = this.ddPlaka.list.filter(x => nakitDokum.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
@@ -418,9 +419,7 @@ export class DashboardComponent implements OnInit {
             this.formData.AracId = null;
             this.formData.Dara = 0
             this.Intervalclear(2)
-
           }
-          this.belgeInterval();
           this.formData.FirmaAdi = nakitDokum.data.FirmaAdi;
 
 
@@ -555,7 +554,7 @@ export class DashboardComponent implements OnInit {
     if (result.success && result.data.List.length > 0 && result.data.List[0].BelgeNo != this.formData.BelgeNo) {
       Notiflix.Notify.warning(`${moment(new Date()).format("DD/MM/YYYY")} tarihinde ${result.data.List[0].BelgeNo} numaralı geçiş tespit edilmiştir`)
 
-      await this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${result.data.List[0].BelgeNo} nolu belge geçişi beklenirken ${this.formData.BelgeNo} nolu belge ile geçiş yapılmaya çalışıldı&logType=Kantar Belge Uyarısı&data=null`, { referanceId: 0, logText: `${result.data.List[0].BelgeNo} nolu belge geçişi beklenirken ${this.formData.BelgeNo} nolu belge ile geçiş yapılmaya çalışıldı`, logType: 'Kantar Belge Uyarısı', data: null })
+      await this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${arac?.PlakaNo} Plakası için ${result.data.List[0].BelgeNo} nolu belge geçişi beklenirken ${this.formData.BelgeNo} nolu belge ile geçiş yapılmaya çalışıldı&logType=Kantar Belge Uyarısı&data=null`, { referanceId: 0, logText: ` ${arac?.PlakaNo} Plakası için ${result.data.List[0].BelgeNo} nolu belge geçişi beklenirken ${this.formData.BelgeNo} nolu belge ile geçiş yapılmaya çalışıldı`, logType: 'Kantar Belge Uyarısı', data: null })
       return;
     }
 

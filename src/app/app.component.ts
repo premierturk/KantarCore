@@ -32,6 +32,7 @@ export class AppComponent implements OnInit {
       this._electronService.ipcRenderer.on('update_available', this.update);
       this._electronService.ipcRenderer.on('print', this.printAll);
       this._electronService.ipcRenderer.on('basarili', (event, data) => Notiflix.Notify.success(data));
+      this._electronService.ipcRenderer.on('successRestart', (event, data) => Notiflix.Notify.success(data));
       this._electronService.ipcRenderer.on('kantarConfig', (event, data) => window.localStorage.setItem("kantarConfig", data));
 
     }

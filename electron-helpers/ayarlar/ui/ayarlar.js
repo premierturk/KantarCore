@@ -13,4 +13,8 @@ app.controller("myCtrl", function ($scope) {
     ipcRenderer.send("kantarConfig", $scope.kantarConfig);
     window.close();
   };
+
+  $scope.restart = function () {
+    ipcRenderer.send("antenRestart");
+  };
 });

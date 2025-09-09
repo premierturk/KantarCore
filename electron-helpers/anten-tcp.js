@@ -73,6 +73,18 @@ class AntenTcp {
     }
   }
 
+  static antenRestart() {
+    if (AntenTcp.connection) {
+      AntenTcp.connection.write("AA010F000094CF");
+      mainWindow.webContents.send(
+        "successRestart",
+        "Anten Tekrardan Başlatıldı."
+      );
+      console.log("Anten başlatma komutu AA010F000094CF");
+      printToAngular("Anten başlatma komutu AA010F000094CF");
+    }
+  }
+
   static handleConnection(conn) {
     AntenTcp.connection = conn;
     var remoteAddress = conn.remoteAddress + ":" + conn.remotePort;
