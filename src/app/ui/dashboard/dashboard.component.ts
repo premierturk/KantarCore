@@ -550,13 +550,27 @@ export class DashboardComponent implements OnInit {
       return;
     }
     const arac = this.ddPlaka.list.filter((x) => x.AracId == this.formData.AracId)[0];
-    var result = await this.ds.postNoMess(`${this.url}/Harita/GecmisIzlemeKabulParseliBul`, { basTar: moment(), bitTar: moment().subtract(1, 'hours'), aracTakipId: arac?.AracTakipId, ticket: null });
-    if (result.success && result.data.List.length > 0 && result.data.List[0].BelgeNo != this.formData.BelgeNo) {
-      Notiflix.Notify.warning(`${moment(new Date()).format("DD/MM/YYYY")} tarihinde ${result.data.List[0].BelgeNo} numaralı geçiş tespit edilmiştir`)
+    this.ds.postNoMess(`${this.url}/Harita/GecmisIzlemeKabulParseliBul`, {
+      basTar: moment(),
+      bitTar: moment().subtract(1, 'hours'),
+      aracTakipId: arac?.AracTakipId,
+      ticket: null
+    })
+      .then(result => {
+        if (result.success && result.data.List.length > 0 && result.data.List[0].BelgeNo != this.formData.BelgeNo) {
+          Notiflix.Notify.warning(`${moment(new Date()).format("DD/MM/YYYY")} tarihinde ${result.data.List[0].BelgeNo} numaralı geçiş tespit edilmiştir`);
 
-      await this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${arac?.PlakaNo} Plakası için ${result.data.List[0].BelgeNo} nolu belge geçişi beklenirken ${this.formData.BelgeNo} nolu belge ile geçiş yapılmaya çalışıldı&logType=Kantar Belge Uyarısı&data=null`, { referanceId: 0, logText: ` ${arac?.PlakaNo} Plakası için ${result.data.List[0].BelgeNo} nolu belge geçişi beklenirken ${this.formData.BelgeNo} nolu belge ile geçiş yapılmaya çalışıldı`, logType: 'Kantar Belge Uyarısı', data: null })
-      return;
-    }
+          this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${arac?.PlakaNo} Plakası için ${result.data.List[0].BelgeNo} nolu belge geçişi beklenirken ${this.formData.BelgeNo} nolu belge ile geçiş yapılmaya çalışıldı&logType=Kantar Belge Uyarısı&data=null`, {
+            referanceId: 0,
+            logText: ` ${arac?.PlakaNo} Plakası için ${result.data.List[0].BelgeNo} nolu belge geçişi beklenirken ${this.formData.BelgeNo} nolu belge ile geçiş yapılmaya çalışıldı`,
+            logType: 'Kantar Belge Uyarısı',
+            data: null
+          });
+        }
+      })
+      .catch(error => {
+        console.error("İşlem sırasında bir hata oluştu: ", error);
+      });
 
   }
 

@@ -38,12 +38,15 @@ class AntenTcp {
         clearInterval(reconnectInterval);
         reconnectInterval = null;
       }
+      if (AntenTcp.connection) {
+        AntenTcp.connection.destroy();
+        AntenTcp.connection = null;
+        console.log("Baglanti Sonlandirildi!");
+        printToAngular("Baglanti Sonlandirildi!");
+      }
       var client = net.connect(
         { port: AppConfig.antenport, host: AppConfig.antenip },
         () => {
-          AntenTcp.connection = null;
-          console.log("Baglanti Sonlandirildi!");
-          printToAngular("Baglanti Sonlandirildi!");
           AntenTcp.connection = client;
           console.log("Sunucuya baglanildi!");
           printToAngular("Sunucuya baglanildi!");
