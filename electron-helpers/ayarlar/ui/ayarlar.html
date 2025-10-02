@@ -42,6 +42,16 @@
       </div>
 
       <hr />
+      <h4><i class="glyphicon glyphicon-asterisk"></i> Barkod Okuyucu</h4>
+      <div class="row input-row">
+        <label class="col-xs-3 form-label">Klavye Girişi ?</label>
+        <input
+          class="form-check-input"
+          type="checkbox"
+          ng-model="kantarConfig.barkodOkuyucu"
+        />
+      </div>
+      <hr />
 
       <h4><i class="glyphicon glyphicon-asterisk"></i> Yazıcı</h4>
       <div class="row input-row">
@@ -65,6 +75,14 @@
 
       <h4><i class="glyphicon glyphicon-asterisk"></i> Anten</h4>
       <div class="row input-row">
+        <label class="col-xs-3 form-label">ReaderAPP</label>
+        <input
+          class="form-check-input"
+          type="checkbox"
+          ng-model="kantarConfig.reader"
+        />
+      </div>
+      <div class="row input-row">
         <label class="col-xs-3 form-label">Anten Marka:</label>
         <div class="form-check">
           <input
@@ -83,6 +101,7 @@
           <label class="form-check-label radio-label">Hopland</label>
         </div>
       </div>
+
       <div class="row input-row" ng-if="kantarConfig.antenTip === 'hopland'">
         <label class="col-xs-3 form-label">Anten IP:</label>
         <input

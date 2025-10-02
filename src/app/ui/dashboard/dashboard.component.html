@@ -425,7 +425,7 @@
         <label>Belge No</label>
         <kendo-textbox
           class="width"
-          [disabled]="true"
+          [disabled]="!barkodElleGiris"
           [size]="'small'"
           [(ngModel)]="formData.BelgeNo"
         >

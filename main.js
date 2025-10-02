@@ -2,12 +2,15 @@ const { app, BrowserWindow, ipcMain, Menu } = require("electron");
 const Shortcut = require("electron-shortcut");
 const { autoUpdater } = require("electron-updater");
 const path = require("path");
-
+const { spawn } = require("child_process");
 const AppConfig = require("./electron-helpers/app-config");
 const AntenTcp = require("./electron-helpers/anten-tcp");
 const KantarPort = require("./electron-helpers/kantar-port");
 const FisPrinter = require("./electron-helpers/fis-printer");
-const { ayarlarMenu } = require("./electron-helpers/ayarlar/ayarlarMenu");
+const {
+  ayarlarMenu,
+  openSettingsWindow,
+} = require("./electron-helpers/ayarlar/ayarlarMenu");
 // var ping = require("ping");
 let mainWindow;
 const printToAngular = (message) =>
@@ -43,6 +46,12 @@ function onReady() {
   AppConfig.initialize();
   KantarPort.start();
   AntenTcp.createServer();
+  readerApp();
+
+  setInterval(() => {
+    console.log("1 dakika gecti, uygulama tekrar baslatiliyor...");
+    readerApp();
+  }, 60 * 1000);
 
   setTimeout(() => {
     autoUpdater.checkForUpdates();
@@ -68,6 +77,11 @@ ipcMain.on("antenRestart", AntenTcp.antenRestart);
 
 ipcMain.on("tcprestart", AntenTcp.connectToHopland);
 
+ipcMain.on("password-successful", () => {
+  console.log("IPC: Sifre Basarili Sinyali Alindi. Ayarlar Aciliyor.");
+  openSettingsWindow(mainWindow);
+});
+
 //autoUpdater
 autoUpdater.on("update-available", () => {
   mainWindow.webContents.send("update_available");
@@ -90,3 +104,25 @@ autoUpdater.on("update-downloaded", () => {
 });
 
 autoUpdater.on("error", (message) => printToAngular(message));
+
+function readerApp() {
+  const appPath = path.join(__dirname, "readerApp");
+  const executable = "readerapp.exe";
+  const fullPath = path.join(appPath, executable);
+
+  const params = [`${AppConfig.antenip}:7896`, "8080"];
+
+  const command = `start /B "ReaderApp" "${fullPath}" ${params.join(" ")}`;
+
+  const child = spawn("cmd.exe", ["/c", command], { shell: true });
+
+  child.stderr.on("data", (data) => {
+    console.error(`Komut calistirma hatasi: ${data}`);
+  });
+
+  child.on("close", (code) => {
+    console.log(`Komut ${code} koduyla tamamlandi.`);
+  });
+
+  console.log(`'${executable}' uygulamasi baslatildi.`);
+}

@@ -114,137 +114,11 @@ class AntenTcp {
   }
 }
 
-// function onConnData(d) {
-//   try {
-//     let arr = [];
-
-//     // d arrayindeki byte'ları hex string'e çevir
-//     for (let i = 0; i < d.length; i++) {
-//       arr.push("0x" + d[i].toString(16).padStart(2, "0"));
-//     }
-
-//     // Eğer gerekli byte'lar yoksa işlemi bitir
-//     if (!arr.includes("0x51") && !arr.includes("0x13")) return;
-
-//     for (let i = 0; i < arr.length - 4; i++) {
-//       if (arr[i] === "0x51" || arr[i] === "0x13") {
-//         if (arr.length < i + 4) return;
-
-//         // Sonraki 3 byte'ı birleştirip hex string oluştur
-//         const hex1 = arr[i + 1].slice(2); // '0x' kısmını at
-//         const hex2 = arr[i + 2].slice(2);
-//         const hex3 = arr[i + 3].slice(2);
-
-//         arr = [];
-
-//         const data = parseInt(hex1 + hex2 + hex3, 16);
-
-//         if (!data.toString().startsWith("1001")) return;
-
-//         tcpmessages.push(data);
-
-//         // if (tcpmessages.length === 2) {
-//         // const allSame = new Set(tcpmessages).size === 1;
-//         // if (allSame) {
-//         mainWindow.webContents.send("tcp", data.toString());
-//         console.log("TCP MESAJI =>", data.toString());
-//         tcpmessages = [];
-//         // } else {
-//         //   tcpmessages = tcpmessages.slice(1); // yalnızca sonuncuyu tut
-//         // }
-//         // }
-//       }
-//     }
-//   } catch (e) {
-//     console.error("TCP verisi işlenirken hata:", e);
-//   }
-// }
-
-// function onConnData(d) {
-//   try {
-//     const buffer = Buffer.from(d);
-//     const results = []; // Tüm bulunan değerleri burada saklayacağız
-
-//     let offset = 0; // Aramaya başlayacağımız konum
-
-//     // Buffer içinde 152 (0x98) değerinin her geçtiği yeri bulmak için döngü kullanıyoruz.
-//     // indexOf'un ikinci parametresi (fromIndex) sayesinde aramaya kaldığımız yerden devam edebiliriz.
-//     while (offset < buffer.length) {
-//       let markerIndex = buffer.indexOf(152, offset);
-
-//       // Eğer 152 bulunamazsa veya buffer'ın sonuna ulaştıysak döngüyü kır.
-//       if (markerIndex === -1) {
-//         break;
-//       }
-
-//       // 152 bulundu. Şimdi ondan sonraki 2 baytı kontrol edelim.
-//       // Toplamda markerIndex + 1 (152'nin kendisi) + 2 (sonraki 2 bayt) = 3 bayt.
-//       // Yani markerIndex + 3'e kadar olan veriye ihtiyacımız var.
-//       if (buffer.length < markerIndex + 3) {
-//         // Yeterli bayt yoksa, bu 152'yi işleyemeyiz. Sonraki aramaya geçmek için offset'i artırıyoruz.
-//         offset = markerIndex + 1;
-//         continue;
-//       }
-
-//       // 152'nin kendisi ve sonraki iki baytı alıyoruz.
-//       // Sizin "98 D0 65" örneğinizdeki gibi, 152 (0x98) ilk bayt olacak.
-//       const byte1 = buffer[markerIndex]; // 152 (0x98)
-//       const byte2 = buffer[markerIndex + 1];
-//       const byte3 = buffer[markerIndex + 2];
-
-//       // Undefined kontrolü
-//       if (byte1 === undefined || byte2 === undefined || byte3 === undefined) {
-//         // Bu durum teorik olarak üstteki buffer.length kontrolüyle yakalanmalı,
-//         // ama yine de defensive bir kontrol olarak kalabilir.
-//         offset = markerIndex + 1;
-//         continue;
-//       }
-
-//       // Bitwise işlemlerle sayıyı birleştir.
-//       const data = (byte1 << 16) | (byte2 << 8) | byte3;
-//       const dataString = data.toString();
-
-//       // "1001" ile başlayıp başlamadığını kontrol et.
-//       if (dataString.startsWith("1001")) {
-//         // Şarta uyan her değeri sonuçlar dizisine ekle.
-//         results.push(dataString);
-//       }
-
-//       // Bir sonraki 152'yi aramak için aramayı, mevcut 152'nin bir sonraki konumundan başlat.
-//       // Bu, aynı 152'yi tekrar işlememizi engeller.
-//       offset = markerIndex + 1;
-//     }
-//     // Eğer sonuçlar varsa, bunları Angular'a gönder.
-//     if (results.length > 0) {
-//       const allSame = new Set(results).size === 1;
-
-//       if (allSame) {
-//         mainWindow.webContents.send("tcp", results[0].toString());
-//         console.log("TCP MESAJI =>", results[0].toString());
-//         results = [];
-//       } else {
-//         results = results.slice(1); // yalnızca sonuncuyu tut
-//       }
-//       // Tüm sonuçları tek bir mesaj olarak veya tek tek gönderebilirsiniz.
-//       // Örnek: İlk bulunanı gönderiyoruz. Tümünü göndermek isterseniz join veya farklı bir yapı kullanın.
-//       // mainWindow.webContents.send("tcp", results[0]);
-//       // console.log("OGS Etiket Data =>", results[0]);
-
-//       // Eğer sadece ilk uygun değeri gönderip sonra sıfırlamak istiyorsanız:
-//       // mainWindow.webContents.send("tcp", results[0]);
-//       // console.log("İlk Bulunan TCP Mesajı =>", results[0]);
-//       // tcpmessages = []; // İhtiyaca göre
-//     }
-//   } catch (e) {
-//     console.error("TCP verisi işlenirken hata:", e);
-//   }
-// }
-
 function onConnData(d) {
   const buffer = Buffer.from(d);
   const hexString = buffer.toString("hex");
   printToAngular("hex string : " + hexString);
-  if (AppConfig.antenTip == "hopland") {
+  if (AppConfig.antenTip == "hopland" && !AppConfig.reader) {
     const searchStr = "4001";
     const indexStr = hexString.indexOf(searchStr);
 
@@ -269,6 +143,11 @@ function onConnData(d) {
         console.log("TCP MESAJI =>", eskiEtiketmsg);
       }
     }
+  } else if (AppConfig.reader) {
+    printToAngular("reader : " + d.toString());
+
+    mainWindow.webContents.send("tcp", d.toString());
+    console.log("TCP MESAJI =>", d.toString());
   } else {
     let markerIndex = buffer.indexOf(13);
     if (markerIndex === -1) {

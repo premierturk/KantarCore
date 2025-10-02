@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, ViewChild } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild, HostListener } from '@angular/core';
 import { ButtonType, DataSource } from 'src/app/service/datasource';
 import { ElectronService } from 'ngx-electron';
 import { DataStateChangeEvent, GridComponent, GridDataResult, RowClassArgs } from '@progress/kendo-angular-grid';
@@ -51,7 +51,7 @@ export class DashboardComponent implements OnInit {
   public user = JSON.parse(window.localStorage.getItem('user'));
   public setinterval;
   public speedTestInterval;
-  public tcpInterval;
+  // public tcpInterval;
   public OgsAracId = null;
   public OgsAracMatch = '';
   public IsOfflineBackUp: boolean;
@@ -62,6 +62,8 @@ export class DashboardComponent implements OnInit {
   public clearBelgeTimeout;
   public clearPlakaTimeout;
   public isPulsingGreen: boolean = false;
+  public barkodElleGiris: boolean = false;
+  public ogsPlakaNo: string = '';
 
 
   form = new FormGroup({
@@ -113,7 +115,6 @@ export class DashboardComponent implements OnInit {
   async afterInit() {
     await this.BindForm();
     this.BindGrid();
-
     onScan.attachTo(document, {
       onScan: function (sScanned) {
 
@@ -122,6 +123,7 @@ export class DashboardComponent implements OnInit {
         this.barcode = '';
         const component = DashboardComponent.componentInstance;
         component.belgeNoFromBarcode(sScanned);
+
         component.ref.detectChanges();
       },
       minLength: 2,
@@ -136,6 +138,15 @@ export class DashboardComponent implements OnInit {
         else if (oEvent.keyCode === 223 && !oEvent.shiftKey) {
           return '*';
         }
+        else if (oEvent.keyCode === 106) {
+          return '*';
+        }
+        else if (oEvent.keyCode === 189 && !oEvent.shiftKey) {
+          return '-';
+        }
+        else if (oEvent.keyCode === 109) {
+          return '-';
+        }
 
         return decodedChar;
       }
@@ -149,24 +160,27 @@ export class DashboardComponent implements OnInit {
     this.Intervalclear(3);
   }
 
-  // @HostListener('window:keydown', ['$event'])
-  // keyEvent(event: KeyboardEvent) {
-  //   if (event.key == 'Enter') {
-  //     console.log("Klavye Girişi: " + this.barcode);
-  //     this.belgeNoFromBarcode(this.barcode);
+  @HostListener('window:keydown', ['$event'])
+  keyEvent(event: KeyboardEvent) {
+    const allowedCharactersRegex = /[0-9akf-]/i;
+    if (event.key == 'Enter' && this.barkodElleGiris) {
+      this.barcode = this.barcode.replace(/[^0-9akf-]/gi, '');
+      console.log("Klavye Girişi: " + this.barcode);
+      this.belgeNoFromBarcode(this.barcode);
 
-  //     this.barcode = '';
-  //     return;
-  //   }
-  //   this.barcode += event.key;
-  // }
+      this.barcode = '';
+      return;
+    }
+    if (event.key.length === 1 && allowedCharactersRegex.test(event.key)) {
+      this.barcode += event.key;
+    }
+  }
 
   public async belgeNoFromBarcode(code) {
     console.log("Belgeyi Okutunca Parse Edilen Yer: " + code)
     this.formData.BarkodNo = '';
     this.barcode = '';
     var barkodKontrol = code.replaceAll("Shift", "").replaceAll("Control", "").replaceAll("*", "-").toUpperCase();
-
     if (barkodKontrol.includes("KF-") && barkodKontrol.includes("-KF"))   // KAMU FİŞ
     {
       this.barkodTuru = "Kamu Fiş";
@@ -245,7 +259,7 @@ export class DashboardComponent implements OnInit {
 
       }
       else {
-        if (this.formData.BelgeNo != barkodBelge) {
+        if (this.formData.BelgeNo != barkodBelge || this.barkodElleGiris) {
           var kabulListesiSorgu = await this.ds.post(`${this.url}/kantar/KabulBelgesiKontrolV2`, { 'BelgeNo': barkodBelge, 'BarkodNo': barkodKontrol });
           if (kabulListesiSorgu.success) {
             if (this.user.ilid !== 57) {
@@ -351,7 +365,7 @@ export class DashboardComponent implements OnInit {
         }
       }
       else {
-        if (this.formData.BelgeNo != barkodBelge) {
+        if (this.formData.BelgeNo != barkodBelge || this.barkodElleGiris) {
           var kabulListesiSorgu = await this.ds.post(`${this.url}/kantar/KabulBelgesiKontrolV2`, { 'BelgeNo': barkodBelge, 'BarkodNo': barkodKontrol });
           if (kabulListesiSorgu.success) {
             this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kabulListesiSorgu.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
@@ -432,11 +446,12 @@ export class DashboardComponent implements OnInit {
         }
       }
     }
+    this.ddPlakaBelgeFilter = [];
     this.ddPlaka.f_list.forEach(element => {
       this.ddPlakaBelgeFilter.push(element)
     });
-    this.GecmisIzleme(2);
 
+    this.GecmisIzleme(2);
     if (this.OgsAracId != null) {
       this.plakaChange(this.OgsAracId)
     }
@@ -575,45 +590,43 @@ export class DashboardComponent implements OnInit {
   }
 
 
-  public async SpeedTest() {
+  public SpeedTest() {
 
-    const speedTestMbps = async () => {
-      try {
-        const basTar = performance.now();
-        var offlinespeed = await this.ds.get(`${this.url}/donw10mb`);
-        const bitTar = performance.now();
-        const apiSaniye = (bitTar - basTar) / 1000;
-        const dosyaBoyut = 10 * 1024 * 1024;  // 10mb dosyayı byte a çeviriyorum
-        const mbpsHesap = (dosyaBoyut * 8) / (1000 * 1000); // megabite çeviriyorum
-        const speedMbps = mbpsHesap / apiSaniye;
+    try {
+      const basTar = performance.now();
+      this.ds.get(`${this.url}/donw10mb`);
+      const bitTar = performance.now();
+      const apiSaniye = (bitTar - basTar) / 1000;
+      const dosyaBoyut = 10 * 1024 * 1024;  // 10mb dosyayı byte a çeviriyorum
+      const mbpsHesap = (dosyaBoyut * 8) / (1000 * 1000); // megabite çeviriyorum
+      const speedMbps = mbpsHesap / apiSaniye;
 
-        console.log(`İndirme hızı: ${speedMbps.toFixed(2)} Mbps`);
+      console.log(`İndirme hızı: ${speedMbps.toFixed(2)} Mbps`);
 
-        await this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir&logType=Kantar Speed Test Hesabı&data=null`, {
-          referanceId: 0,
-          logText: `${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir`,
-          logType: 'Kantar Speed Test Hesabı',
-          data: null
-        });
-      } catch (error) {
-        console.error("Hız testi sırasında bir hata oluştu:", error);
-        await this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=Hız testi sırasında hata oluştu: ${error.message}&logType=Kantar Speed Test Hata&data=null`, {
-          referanceId: 0,
-          logText: `Hız testi sırasında hata oluştu: ${error.message}`,
-          logType: 'Kantar Speed Test Hata',
-          data: null
-        });
-      }
-    };
-    this.speedTestInterval = setInterval(speedTestMbps, 3600000);
+      this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir&logType=Kantar Speed Test Hesabı&data=null`, {
+        referanceId: 0,
+        logText: `${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir`,
+        logType: 'Kantar Speed Test Hesabı',
+        data: null
+      });
+    } catch (error) {
+      console.error("Hız testi sırasında bir hata oluştu:", error);
+      this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=Hız testi sırasında hata oluştu: ${error.message}&logType=Kantar Speed Test Hata&data=null`, {
+        referanceId: 0,
+        logText: `Hız testi sırasında hata oluştu: ${error.message}`,
+        logType: 'Kantar Speed Test Hata',
+        data: null
+      });
+    }
   }
 
   public async BindForm() {
-    this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
+    this.barkodElleGiris = this.kantarConfig.barkodOkuyucu;
 
+    this.isLoading = true;
+    this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
     this.ddTumPlakalar = this.ddPlaka.list;
     this.ddFirma = new DropdownProps("FirmaAdi", await this.ds.get(`${this.url}/FirmaListesiByCariHesapTuru`));
-    this.isLoading = true;
     this.kamuFisListesi = await this.ds.get(`${this.url}/kantar/KamuFisListesi`);
     this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
     this.isLoading = false;
@@ -629,16 +642,19 @@ export class DashboardComponent implements OnInit {
       this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
       this.kamuFisListesi = await this.ds.get(`${this.url}/kantar/KamuFisListesi`);
       this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
+      this.ddTumPlakalar = this.ddPlaka.list;
       console.clear();
     }, 60000);
 
 
-    this.tcpInterval = setInterval(() => {
-      this._electronService.ipcRenderer.send('tcprestart');
-    }, 20000);
+    // this.tcpInterval = setInterval(() => {
+    //   this._electronService.ipcRenderer.send('tcprestart');
+    // }, 20000);
 
 
     this.SpeedTest();
+    this.speedTestInterval = setInterval(this.SpeedTest, 3600000);
+
   }
 
   public async BindGrid() {
@@ -914,15 +930,17 @@ export class DashboardComponent implements OnInit {
       component.isPulsingGreen = false;
       component.ref.detectChanges();
     }, 500);
-
+    console.log("plakalar : " + component.ddTumPlakalar.length)
     var arac = component.ddTumPlakalar.filter(x => x.OGSEtiket == data)[0];
     if (!arac) {
       component.OgsAracMatch = `*Okunan Etiket (${data}) - Eşleşen Plaka Bulunamadı`
+      component.ogsPlakaNo = data + '-Eşleşme yok'
       component.ref.detectChanges();
       return;
     }
     component.OgsAracId = arac.AracId;
     component.OgsAracMatch = `*Okunan Etiket (${data}) - Eşleşen Plaka (${arac.PlakaNo})`
+    component.ogsPlakaNo = data + '-' + arac.PlakaNo
 
     if (component.formData.AracId == null || component.formData.AracId != arac.AracId) {
       component.plakaChange(arac.AracId);
@@ -997,7 +1015,7 @@ export class DashboardComponent implements OnInit {
 
     if (this.isLoading == false && this.aracTakipKontrol) {
       this.isLoading = true;
-      var result = await this.ds.post(`${this.url}/kantar/hafriyatkabul/KabulBelgesi`, { AracId: this.formData.AracId, FirmaId: null, SahaId: sahaId, UserId: this.user.userid, BelgeNo: this.formData.BelgeNo, BarkodNo: this.formData.BarkodNo, DepolamaAlanId: this.kantarConfig.depolamaAlanId, Tonaj: this.formData.Tonaj, Dara: this.formData.Dara, GirisCikis: 'Giriş', isOffline: this.formData.IsOffline, IslemTarihi: new Date() });
+      var result = await this.ds.post(`${this.url}/kantar/hafriyatkabul/KabulBelgesi`, { AracId: this.formData.AracId, FirmaId: null, SahaId: sahaId, UserId: this.user.userid, BelgeNo: this.formData.BelgeNo, BarkodNo: this.formData.BarkodNo, DepolamaAlanId: this.kantarConfig.depolamaAlanId, Tonaj: this.formData.Tonaj, Dara: this.formData.Dara, GirisCikis: 'Giriş', isOffline: this.formData.IsOffline, IslemTarihi: new Date(), OgsPlakaNo: this.ogsPlakaNo });
       this.isLoading = false;
       if (result.success) {
         if (this._electronService.ipcRenderer) {
@@ -1016,6 +1034,7 @@ export class DashboardComponent implements OnInit {
 
       }
       this.OgsAracMatch = '';
+      this.ogsPlakaNo = '';
 
       this.Intervalclear(3);
 

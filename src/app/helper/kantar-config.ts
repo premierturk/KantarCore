@@ -10,6 +10,7 @@ export class KantarConfig {
     logoUrl: string;
     serviceUrl: string;
     isPrinterOn: boolean;
+    barkodOkuyucu: boolean;
     printerName: string;
     kantar: boolean;
     kantarMarka: string;

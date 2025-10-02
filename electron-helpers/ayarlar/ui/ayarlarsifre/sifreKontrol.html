@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Ayarlar Şifresi</title>
+    <style>
+      /* Ana yapı */
+      body {
+        font-family: sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0;
+        margin: 0;
+        background-color: #f0f0f0;
+        overflow: hidden; /* Scroll bar'ı engeller */
+        height: 100vh;
+      }
+      h3 {
+        color: #333;
+        margin-bottom: 20px;
+        margin-top: 20px;
+      }
+
+      /* Başlık ve Kapatma Butonu Düzeni */
+      header {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        padding: 10px 10px 0 0;
+      }
+      .close-btn {
+        cursor: pointer;
+        font-size: 1.2em;
+        color: #555;
+        border: none;
+        background: none;
+        padding: 5px;
+        line-height: 1;
+      }
+      .close-btn:hover {
+        color: #d9534f;
+      }
+
+      .content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-grow: 1;
+        width: 100%;
+      }
+      input {
+        padding: 10px;
+        margin-bottom: 10px;
+        width: 80%;
+        max-width: 300px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button#loginButton {
+        padding: 10px 25px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin-top: 5px;
+      }
+      button#loginButton:hover {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <button id="closeButton" class="close-btn">X</button>
+    </header>
+
+    <div class="content">
+      <h3>Ayarlara Erişmek İçin Şifre Girin</h3>
+      <input type="password" id="passwordInput" placeholder="Şifre" autofocus />
+
+      <div
+        id="errorMessage"
+        style="
+          color: red;
+          margin-bottom: 10px;
+          visibility: hidden;
+          height: 1.2em;
+        "
+      >
+        Hatalı Şifre! Lütfen tekrar deneyiniz.
+      </div>
+
+      <button id="loginButton">Giriş</button>
+    </div>
+
+    <script src="sifreKontrol.js"></script>
+  </body>
+</html>
