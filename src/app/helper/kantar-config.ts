@@ -16,6 +16,7 @@ export class KantarConfig {
     kantarMarka: string;
     serialPort: SerialPort;
 
+
     constructor() {
         var config = JSON.parse(localStorage.getItem("kantarConfig"));
         for (const [key, value] of Object.entries(config)) {

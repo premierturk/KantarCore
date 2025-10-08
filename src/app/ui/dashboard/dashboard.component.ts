@@ -127,7 +127,10 @@ export class DashboardComponent implements OnInit {
         component.ref.detectChanges();
       },
       minLength: 2,
-      preventKeyboardDefault: true,
+      avgTimeByChar: 10,
+      timeBeforeScanTest: 200,
+      suffixKeyCodes: [13],
+      preventDefault: true,
       keyCodeMapper: function (oEvent) {
         let decodedChar = onScan.decodeKeyEvent(oEvent);
 
@@ -157,6 +160,7 @@ export class DashboardComponent implements OnInit {
     onScan.detachFrom(document);
     clearInterval(this.setinterval);
     clearInterval(this.speedTestInterval)
+    // clearInterval(this.tcpInterval)
     this.Intervalclear(3);
   }
 
@@ -177,6 +181,7 @@ export class DashboardComponent implements OnInit {
   }
 
   public async belgeNoFromBarcode(code) {
+    this.isLoading = true;
     console.log("Belgeyi Okutunca Parse Edilen Yer: " + code)
     this.formData.BarkodNo = '';
     this.barcode = '';
@@ -455,6 +460,8 @@ export class DashboardComponent implements OnInit {
     if (this.OgsAracId != null) {
       this.plakaChange(this.OgsAracId)
     }
+    this.isLoading = false;
+
   }
 
   getBelgeNo(readed: any) {
@@ -594,7 +601,7 @@ export class DashboardComponent implements OnInit {
 
     try {
       const basTar = performance.now();
-      this.ds.get(`${this.url}/donw10mb`);
+      this.ds.getNoMessage(`${this.url}/donw10mb`);
       const bitTar = performance.now();
       const apiSaniye = (bitTar - basTar) / 1000;
       const dosyaBoyut = 10 * 1024 * 1024;  // 10mb dosyayı byte a çeviriyorum
@@ -641,8 +648,9 @@ export class DashboardComponent implements OnInit {
     this.setinterval = setInterval(async () => {
       this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
       this.kamuFisListesi = await this.ds.get(`${this.url}/kantar/KamuFisListesi`);
-      this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
-      this.ddTumPlakalar = this.ddPlaka.list;
+      this.ddTumPlakalar = await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`);
+      // this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
+      // this.ddTumPlakalar = this.ddPlaka.list;
       console.clear();
     }, 60000);
 

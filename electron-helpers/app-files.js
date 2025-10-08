@@ -12,6 +12,8 @@ class AppFiles {
     "fis/output.txt"
   );
   static exePath = "fis/PrintFis.exe";
+  static readerExePath = "readerApp/ReaderApp.exe";
+  static readerSerialExePath = "readerApp/ReaderAppSerialPort.exe";
 }
 
 module.exports = AppFiles;

@@ -11,6 +11,7 @@ const {
   ayarlarMenu,
   openSettingsWindow,
 } = require("./electron-helpers/ayarlar/ayarlarMenu");
+const AppFiles = require("./electron-helpers/app-files");
 // var ping = require("ping");
 let mainWindow;
 const printToAngular = (message) =>
@@ -51,6 +52,7 @@ function onReady() {
   setInterval(() => {
     console.log("1 dakika gecti, uygulama tekrar baslatiliyor...");
     readerApp();
+    AntenTcp.connectToHopland();
   }, 60 * 1000);
 
   setTimeout(() => {
@@ -106,13 +108,24 @@ autoUpdater.on("update-downloaded", () => {
 autoUpdater.on("error", (message) => printToAngular(message));
 
 function readerApp() {
-  const appPath = path.join(__dirname, "readerApp");
-  const executable = "readerapp.exe";
-  const fullPath = path.join(appPath, executable);
+  const appPath = AppFiles.readerExePath; //path.join(__dirname, "readerApp");
+  const appSerialPath = AppFiles.readerSerialExePath;
+  let command = "";
+  // const executable = "readerapp.exe";
+  // const fullPath = path.join(appPath, executable);
 
-  const params = [`${AppConfig.antenip}:7896`, "8080"];
+  if (AppConfig.antenseriport) {
+    const params = [`${AppConfig.antencomport}`, "8080"];
+    command = `start /min "ReaderApp" "${appSerialPath}" ${params.join(" ")}`;
 
-  const command = `start /B "ReaderApp" "${fullPath}" ${params.join(" ")}`;
+    printToAngular("ReaderApp SerialPort Baslatildi");
+  } else {
+    const params = [`${AppConfig.antenip}:7896`, "8080"];
+    command = `start /min "ReaderAppSerialPort" "${appPath}" ${params.join(
+      " "
+    )}`;
+    printToAngular("ReaderApp TCP Baslatildi");
+  }
 
   const child = spawn("cmd.exe", ["/c", command], { shell: true });
 
@@ -124,5 +137,5 @@ function readerApp() {
     console.log(`Komut ${code} koduyla tamamlandi.`);
   });
 
-  console.log(`'${executable}' uygulamasi baslatildi.`);
+  console.log(`ReaderApp uygulamasi baslatildi.`);
 }

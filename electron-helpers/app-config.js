@@ -23,6 +23,8 @@ class AppConfig {
   static kantar;
   static printerName;
   static isPrinterOn;
+  static antencomport;
+  static antenseriport;
   static serialPort = new SerialPortConfigs({});
 
   static initialize() {
