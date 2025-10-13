@@ -117,22 +117,25 @@ export class DashboardComponent implements OnInit {
     this.BindGrid();
     onScan.attachTo(document, {
       onScan: function (sScanned) {
+        if (sScanned.includes("B")) {
 
-        sScanned = sScanned.replace("*", "-");
+          sScanned = sScanned.replace("*", "-");
 
-        this.barcode = '';
-        const component = DashboardComponent.componentInstance;
-        component.belgeNoFromBarcode(sScanned);
+          this.barcode = '';
+          const component = DashboardComponent.componentInstance;
+          component.belgeNoFromBarcode(sScanned);
 
-        component.ref.detectChanges();
+          component.ref.detectChanges();
+        }
+
       },
-      minLength: 2,
-      avgTimeByChar: 10,
-      timeBeforeScanTest: 200,
-      suffixKeyCodes: [13],
-      preventDefault: true,
+      minLength: 1,
       keyCodeMapper: function (oEvent) {
         let decodedChar = onScan.decodeKeyEvent(oEvent);
+
+        if (oEvent.code.includes('Digit')) {
+          decodedChar = decodedChar + "B"
+        }
 
 
         if (oEvent.keyCode === 56 && oEvent.shiftKey) {
@@ -150,10 +153,13 @@ export class DashboardComponent implements OnInit {
         else if (oEvent.keyCode === 109) {
           return '-';
         }
-
+        else if (oEvent.keyCode === 13 || oEvent.keyCode === 9) {
+          return 'Enter';
+        }
         return decodedChar;
       }
     });
+
   }
 
   ngOnDestroy() {
@@ -163,6 +169,9 @@ export class DashboardComponent implements OnInit {
     // clearInterval(this.tcpInterval)
     this.Intervalclear(3);
   }
+
+
+
 
   @HostListener('window:keydown', ['$event'])
   keyEvent(event: KeyboardEvent) {
@@ -185,7 +194,7 @@ export class DashboardComponent implements OnInit {
     console.log("Belgeyi Okutunca Parse Edilen Yer: " + code)
     this.formData.BarkodNo = '';
     this.barcode = '';
-    var barkodKontrol = code.replaceAll("Shift", "").replaceAll("Control", "").replaceAll("*", "-").toUpperCase();
+    var barkodKontrol = code.replaceAll("Shift", "").replaceAll("Control", "").replaceAll("*", "-").replaceAll("B", "").toUpperCase();
     if (barkodKontrol.includes("KF-") && barkodKontrol.includes("-KF"))   // KAMU FİŞ
     {
       this.barkodTuru = "Kamu Fiş";
@@ -502,39 +511,31 @@ export class DashboardComponent implements OnInit {
 
       if (this.barkodTuru == "Nakit Döküm" && this.formData.Tonaj > 80000) {
         if (!arac.AracTakipVarmi) {
-          Notiflix.Notify.failure("Araç Takip Sözleşmesi Yoktur.")
           this.aracTakipKontrol = false;
-          this.formData.AracId = null;
-          this.formData.Dara = 0;
           this.Intervalclear(2);
+          Notiflix.Notify.failure("Araç Takip Sözleşmesi Yoktur.")
           return;
         }
         else if (arac.TasimaIzinAktif == "Pasif") {
-          Notiflix.Notify.failure("Taşıma İzin Süresi Dolmuştur")
           this.aracTakipKontrol = false;
-          this.formData.AracId = null;
-          this.formData.Dara = 0;
           this.Intervalclear(2);
+          Notiflix.Notify.failure("Taşıma İzin Süresi Dolmuştur")
           return;
         }
 
       }
       else if (this.barkodTuru != "Nakit Döküm") {
         if (!arac.AracTakipVarmi) {
-          Notiflix.Notify.failure("Araç Takip Sözleşmesi Yoktur.")
           this.aracTakipKontrol = false;
-          this.formData.AracId = null;
-          this.formData.Dara = 0;
           this.Intervalclear(2);
+          Notiflix.Notify.failure("Araç Takip Sözleşmesi Yoktur.")
           return;
 
         }
         else if (arac.TasimaIzinAktif == "Pasif") {
-          Notiflix.Notify.failure("Taşıma İzin Süresi Dolmuştur")
           this.aracTakipKontrol = false;
-          this.formData.AracId = null;
-          this.formData.Dara = 0;
           this.Intervalclear(2);
+          Notiflix.Notify.failure("Taşıma İzin Süresi Dolmuştur")
           return;
         }
 
@@ -601,21 +602,22 @@ export class DashboardComponent implements OnInit {
 
     try {
       const basTar = performance.now();
-      this.ds.getNoMessage(`${this.url}/donw10mb`);
-      const bitTar = performance.now();
-      const apiSaniye = (bitTar - basTar) / 1000;
-      const dosyaBoyut = 10 * 1024 * 1024;  // 10mb dosyayı byte a çeviriyorum
-      const mbpsHesap = (dosyaBoyut * 8) / (1000 * 1000); // megabite çeviriyorum
-      const speedMbps = mbpsHesap / apiSaniye;
+      this.ds.getNoMessage(`${this.url}/donw10mb`).then(() => {
+        const bitTar = performance.now();
+        const apiSaniye = (bitTar - basTar) / 1000;
+        const dosyaBoyut = 10 * 1024 * 1024;  // 10mb dosyayı byte a çeviriyorum
+        const speedMbps = (dosyaBoyut * 8) / (apiSaniye * 1000 * 1000);
 
-      console.log(`İndirme hızı: ${speedMbps.toFixed(2)} Mbps`);
+        console.log(`İndirme hızı: ${speedMbps.toFixed(2)} Mbps`);
 
-      this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir&logType=Kantar Speed Test Hesabı&data=null`, {
-        referanceId: 0,
-        logText: `${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir`,
-        logType: 'Kantar Speed Test Hesabı',
-        data: null
+        this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir&logType=Kantar Speed Test Hesabı&data=null`, {
+          referanceId: 0,
+          logText: `${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir`,
+          logType: 'Kantar Speed Test Hesabı',
+          data: null
+        });
       });
+
     } catch (error) {
       console.error("Hız testi sırasında bir hata oluştu:", error);
       this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=Hız testi sırasında hata oluştu: ${error.message}&logType=Kantar Speed Test Hata&data=null`, {
@@ -711,6 +713,10 @@ export class DashboardComponent implements OnInit {
       this.formData.FirmaAdi = null;
       this.countdown = 0;
       clearInterval(this.countdownInterval);
+      this.formData.AracId = null;
+      this.formData.Dara = 0;
+      this.countplakadown = 0;
+      clearInterval(this.countplakadownInterval);
 
       return;
     }
@@ -756,6 +762,7 @@ export class DashboardComponent implements OnInit {
       this.ref.detectChanges();
       if (this.countplakadown <= 0) {
         this.OgsAracMatch = '';
+        this.ogsPlakaNo = '';
         this.Intervalclear(2);
         this.ref.detectChanges();
       }
@@ -938,7 +945,6 @@ export class DashboardComponent implements OnInit {
       component.isPulsingGreen = false;
       component.ref.detectChanges();
     }, 500);
-    console.log("plakalar : " + component.ddTumPlakalar.length)
     var arac = component.ddTumPlakalar.filter(x => x.OGSEtiket == data)[0];
     if (!arac) {
       component.OgsAracMatch = `*Okunan Etiket (${data}) - Eşleşen Plaka Bulunamadı`
@@ -1114,12 +1120,12 @@ class DropdownProps {
   }
 
   onPLakaFilter(keyword) {
-    if (DashboardComponent.componentInstance.ddPlakaBelgeFilter.length > 0) {
-      this.f_list = DashboardComponent.componentInstance.ddPlakaBelgeFilter.filter((x) => x[this.displayField].includes(keyword.toUpperCase()));
-    }
-    else {
-      this.f_list = this.list.filter((x) => x[this.displayField].includes(keyword.toUpperCase()));
-    }
+    // if (DashboardComponent.componentInstance.ddPlakaBelgeFilter.length > 0) {
+    this.f_list = DashboardComponent.componentInstance.ddPlakaBelgeFilter.filter((x) => x[this.displayField].includes(keyword.toUpperCase()));
+    // }
+    // else {
+    //   this.f_list = this.list.filter((x) => x[this.displayField].includes(keyword.toUpperCase()));
+    // }
 
   }
 }

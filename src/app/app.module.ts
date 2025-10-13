@@ -55,7 +55,7 @@ registerLocaleData(LocaleTr);
     ConfigurationComponent,
     UpdateModalComponent,
     OfflineRequestsComponent
-    
+
   ],
   imports: [
     BrowserModule,

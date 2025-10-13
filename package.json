@@ -58,7 +58,8 @@
       "./kantarConfigs.json",
       "./antenConfigTools/**",
       "./fis/**",
-      "./readerApp/**"
+      "./readerApp/**",
+      "./hercules/**"
     ]
   },
   "private": true,

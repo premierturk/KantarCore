@@ -46,14 +46,17 @@ function onReady() {
 
   AppConfig.initialize();
   KantarPort.start();
-  AntenTcp.createServer();
-  readerApp();
+  if (AppConfig.antenTip != "antenyok") {
+    AntenTcp.createServer();
+  }
 
-  setInterval(() => {
-    console.log("1 dakika gecti, uygulama tekrar baslatiliyor...");
+  if (AppConfig.reader || AppConfig.antenseriport) {
     readerApp();
-    AntenTcp.connectToHopland();
-  }, 60 * 1000);
+
+    setInterval(() => {
+      readerApp();
+    }, 60 * 1000);
+  }
 
   setTimeout(() => {
     autoUpdater.checkForUpdates();
@@ -116,14 +119,14 @@ function readerApp() {
 
   if (AppConfig.antenseriport) {
     const params = [`${AppConfig.antencomport}`, "8080"];
-    command = `start /min "ReaderApp" "${appSerialPath}" ${params.join(" ")}`;
+    command = `start /min "ReaderAppSerialPort" "${appSerialPath}" ${params.join(
+      " "
+    )}`;
 
     printToAngular("ReaderApp SerialPort Baslatildi");
   } else {
-    const params = [`${AppConfig.antenip}:7896`, "8080"];
-    command = `start /min "ReaderAppSerialPort" "${appPath}" ${params.join(
-      " "
-    )}`;
+    const params = [`${AppConfig.antenip}:7896`, `${AppConfig.antenport}`];
+    command = `start /min "ReaderApp" "${appPath}" ${params.join(" ")}`;
     printToAngular("ReaderApp TCP Baslatildi");
   }
 

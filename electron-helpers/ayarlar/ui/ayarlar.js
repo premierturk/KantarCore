@@ -10,8 +10,17 @@ app.controller("myCtrl", function ($scope) {
   });
 
   $scope.save = function () {
-    ipcRenderer.send("kantarConfig", $scope.kantarConfig);
-    window.close();
+    if (
+      ($scope.kantarConfig.reader || $scope.kantarConfig.antenseriport) &&
+      $scope.kantarConfig.antenTip != "hopland"
+    ) {
+      alert(
+        "ReaderApp veya ReaderAppSerialPort seçili ise anten tipi HOPLAND olmak zorundadır !"
+      );
+    } else {
+      ipcRenderer.send("kantarConfig", $scope.kantarConfig);
+      window.close();
+    }
   };
 
   $scope.restart = function () {
