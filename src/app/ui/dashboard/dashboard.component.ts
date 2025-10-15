@@ -555,6 +555,9 @@ export class DashboardComponent implements OnInit {
 
       this.plakaInterval();
 
+      if (this.OgsAracId == null || this.OgsAracId == "") {
+        this.ogsPlakaNo = "";
+      }
 
       this.formData.AracId = aracId;
       this.aracTakipKontrol = true;
@@ -1044,6 +1047,7 @@ export class DashboardComponent implements OnInit {
         this.barcode = '';
         this.IsOfflineBackUp = this.formData.IsOffline;
         this.formData.IsOffline = this.IsOfflineBackUp;
+        this.OgsAracId = null;
         this.BindGrid();
 
       }

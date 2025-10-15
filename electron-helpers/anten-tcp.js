@@ -45,7 +45,7 @@ class AntenTcp {
         printToAngular("Baglanti Sonlandirildi!");
       }
       var client = net.connect(
-        { port: AppConfig.antenport, host: AppConfig.antenip },
+        { port: AppConfig.antenport, host: AppConfig.pcip },
         () => {
           AntenTcp.connection = client;
           console.log("Sunucuya baglanildi!");

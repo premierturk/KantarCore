@@ -134,6 +134,14 @@
         />
       </div>
       <div class="row input-row" ng-if="kantarConfig.antenTip === 'hopland'">
+        <label class="col-xs-3 form-label">PC IP:</label>
+        <input
+          type="text"
+          class="form-control input-sm col-xs-9"
+          ng-model="kantarConfig.pcip"
+        />
+      </div>
+      <div class="row input-row" ng-if="kantarConfig.antenTip === 'hopland'">
         <label class="col-xs-3 form-label">Anten Port:</label>
         <input
           type="number"
