@@ -465,6 +465,19 @@ export class DashboardComponent implements OnInit {
       this.ddPlakaBelgeFilter.push(element)
     });
 
+    if (this.barkodTuru == "Kamu Fiş" || this.barkodTuru == "Nakit Döküm") {
+      this.plakaDisable = false
+    }
+    else {
+      if (this.depolamaAlani.DepoalamaAlani.OgsAktif) {
+        this.plakaDisable = true
+      }
+      else {
+        this.plakaDisable = false
+      }
+    }
+
+
     this.GecmisIzleme(2);
     if (this.OgsAracId != null) {
       this.plakaChange(this.OgsAracId)
@@ -1042,7 +1055,6 @@ export class DashboardComponent implements OnInit {
         if (this.barkodTuru != "Kamu Fiş") {
           this.responseToPrint(result.data);
         }
-        this._electronService.ipcRenderer.send('tcprestart');
         this.formData.BarkodNo = '';
         this.barcode = '';
         this.IsOfflineBackUp = this.formData.IsOffline;
