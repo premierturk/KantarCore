@@ -117,7 +117,6 @@ class AntenTcp {
 function onConnData(d) {
   const buffer = Buffer.from(d);
   const hexString = buffer.toString("hex");
-  printToAngular("hex string : " + hexString);
   if (AppConfig.antenTip == "hopland" && !AppConfig.reader) {
     const searchStr = "4001";
     const indexStr = hexString.indexOf(searchStr);
@@ -149,25 +148,58 @@ function onConnData(d) {
     mainWindow.webContents.send("tcp", d.toString());
     console.log("TCP MESAJI =>", d.toString());
   } else {
-    let markerIndex = buffer.indexOf(13);
-    if (markerIndex === -1) {
-      markerIndex = buffer.indexOf(11);
-      if (markerIndex === -1) {
-        buffer.forEach((element) => {
-          tcpmessages.push(element);
-        });
-        return;
-      } else {
-        for (let index = 0; index < markerIndex; index++) {
-          tcpmessages.push(buffer[index]);
-        }
-      }
+    buffer.forEach((element) => {
+      tcpmessages.push(element);
+    });
+    if (tcpmessages.length > 100) {
+      tcpmessages = [];
+      return;
     }
-    if (tcpmessages[tcpmessages.length - 4].toString() == "64") {
-      const hex1 = tcpmessages[tcpmessages.length - 1];
-      const hex2 = tcpmessages[tcpmessages.length - 2];
-      const hex3 = tcpmessages[tcpmessages.length - 3];
-      const hex4 = tcpmessages[tcpmessages.length - 4];
+    printToAngular("tcpmessages string : " + tcpmessages);
+
+    // 1001 ile başlayanlarda 101,19,152 gelir
+    let bindexb1 = tcpmessages.indexOf(101);
+    let bindexb2 = tcpmessages.indexOf(19);
+    let bindex = tcpmessages.indexOf(152);
+
+    // 4001 ile başlayanlarda 238,0,64 gelir
+    let dindexd1 = tcpmessages.indexOf(238);
+    let dindexd2 = tcpmessages.indexOf(0);
+    let dindex = tcpmessages.indexOf(64);
+
+    if (
+      bindexb1 != -1 &&
+      bindexb2 != -1 &&
+      bindex != -1 &&
+      bindex == bindexb2 + 1 &&
+      bindexb2 == bindexb1 + 1
+    ) {
+      const hex1 = byteToHex(tcpmessages[bindex]);
+      const hex2 = byteToHex(tcpmessages[bindex + 1]);
+      const hex3 = byteToHex(tcpmessages[bindex + 2]);
+      tcpmessages = [];
+      if (hex1 === undefined || hex2 === undefined || hex3 === undefined) {
+        return;
+      }
+      var data = parseInt(hex1 + hex2 + hex3, 16);
+      var dataString = data.toString();
+      if (dataString.startsWith("1001")) {
+        printToAngular("TCP MESSAGE => " + dataString);
+        mainWindow.webContents.send("tcp", dataString);
+        tcpmessages = [];
+      }
+    } else if (
+      dindexd1 != -1 &&
+      dindexd2 != -1 &&
+      dindex != -1 &&
+      dindex == dindexd2 + 1 &&
+      dindexd2 == dindexd1 + 1
+    ) {
+      const hex1 = byteToHex(tcpmessages[dindex]);
+      const hex2 = byteToHex(tcpmessages[dindex + 1]);
+      const hex3 = byteToHex(tcpmessages[dindex + 2]);
+      const hex4 = byteToHex(tcpmessages[dindex + 3]);
+      tcpmessages = [];
       if (
         hex1 === undefined ||
         hex2 === undefined ||
@@ -176,33 +208,68 @@ function onConnData(d) {
       ) {
         return;
       }
-      const data = (hex4 << 24) | (hex3 << 16) | (hex2 << 8) | hex1;
-      const dataString = data.toString(16).padStart(8, "0");
+      var data = parseInt(hex1 + hex2 + hex3 + hex4);
+      var dataString = data.toString();
       if (dataString.startsWith("4001")) {
-        if (tcpmessages.length > 0) {
-          mainWindow.webContents.send("tcp", dataString);
-          tcpmessages = [];
-          console.log("TCP MESAJI =>", dataString);
-        }
-      }
-    } else {
-      const hex1 = tcpmessages[tcpmessages.length - 1];
-      const hex2 = tcpmessages[tcpmessages.length - 2];
-      const hex3 = tcpmessages[tcpmessages.length - 3];
-
-      if (hex1 === undefined || hex2 === undefined || hex3 === undefined) {
-        return;
-      }
-      const data = (hex3 << 16) | (hex2 << 8) | hex1;
-      const dataString = data.toString();
-      if (dataString.startsWith("1001")) {
-        if (tcpmessages.length > 0) {
-          mainWindow.webContents.send("tcp", dataString.toString());
-          tcpmessages = [];
-          console.log("TCP MESAJI =>", dataString.toString());
-        }
+        printToAngular("TCP MESSAGE => " + dataString);
+        mainWindow.webContents.send("tcp", dataString);
+        tcpmessages = [];
       }
     }
+
+    // let markerIndex = buffer.indexOf(13);
+    // if (markerIndex === -1) {
+    //   markerIndex = buffer.indexOf(11);
+    //   if (markerIndex === -1) {
+    //     buffer.forEach((element) => {
+    //       tcpmessages.push(element);
+    //     });
+    //     return;
+    //   } else {
+    //     for (let index = 0; index < markerIndex; index++) {
+    //       tcpmessages.push(buffer[index]);
+    //     }
+    //   }
+    // }
+    // if (tcpmessages[tcpmessages.length - 4].toString() == "64") {
+    //   const hex1 = tcpmessages[tcpmessages.length - 1];
+    //   const hex2 = tcpmessages[tcpmessages.length - 2];
+    //   const hex3 = tcpmessages[tcpmessages.length - 3];
+    //   const hex4 = tcpmessages[tcpmessages.length - 4];
+    //   if (
+    //     hex1 === undefined ||
+    //     hex2 === undefined ||
+    //     hex3 === undefined ||
+    //     hex4 === undefined
+    //   ) {
+    //     return;
+    //   }
+    //   const data = (hex4 << 24) | (hex3 << 16) | (hex2 << 8) | hex1;
+    //   const dataString = data.toString(16).padStart(8, "0");
+    //   if (dataString.startsWith("4001")) {
+    //     if (tcpmessages.length > 0) {
+    //       mainWindow.webContents.send("tcp", dataString);
+    //       tcpmessages = [];
+    //       console.log("TCP MESAJI =>", dataString);
+    //     }
+    //   }
+    // } else {
+    //   const hex1 = tcpmessages[tcpmessages.length - 1];
+    //   const hex2 = tcpmessages[tcpmessages.length - 2];
+    //   const hex3 = tcpmessages[tcpmessages.length - 3];
+    //   if (hex1 === undefined || hex2 === undefined || hex3 === undefined) {
+    //     return;
+    //   }
+    //   const data = (hex3 << 16) | (hex2 << 8) | hex1;
+    //   const dataString = data.toString();
+    //   if (dataString.startsWith("1001")) {
+    //     if (tcpmessages.length > 0) {
+    //       mainWindow.webContents.send("tcp", dataString.toString());
+    //       tcpmessages = [];
+    //       console.log("TCP MESAJI =>", dataString.toString());
+    //     }
+    //   }
+    // }
   }
 }
 

@@ -78,6 +78,7 @@ class KantarPort {
         .replaceAll("US", "")
         .replaceAll("GS", "")
         .replaceAll("ST", "")
+        .replaceAll("WN", "")
         .replaceAll(",", "")
         .replaceAll("+", "")
         .replaceAll("-", "")
