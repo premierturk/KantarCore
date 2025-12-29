@@ -1,0 +1,433 @@
+﻿using System;
+using System.IO.Ports;
+using System.Linq;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using System.Diagnostics;
+
+namespace RFIDEPCReader
+{
+    internal class Program
+    {
+        private static int baudRate = 9600;
+        private static object clientLock = new object();
+
+        // Serial port yeniden bağlanma için
+        private static string comPortName;
+
+        private static List<TcpClient> connectedClients = new List<TcpClient>();
+        private static List<byte> dataBuffer = new List<byte>();
+        private static bool isRunning = true;
+        private static object lockObject = new object();
+        private static SerialPort serialPort;
+        private static object serialPortLock = new object();
+        private static TcpListener tcpListener;
+
+        private static void AcceptClients()
+        {
+            try
+            {
+                while (true)
+                {
+                    TcpClient client = tcpListener.AcceptTcpClient();
+
+                    lock (clientLock)
+                    {
+                        connectedClients.Add(client);
+                        string clientInfo = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
+                        Console.WriteLine($"[TCP] Yeni bağlantı: {clientInfo} (Toplam: {connectedClients.Count})");
+                    }
+
+                    // Client okuma thread'i başlat
+                    Thread clientThread = new Thread(() => HandleClient(client));
+                    clientThread.IsBackground = true;
+                    clientThread.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[TCP] AcceptClients Hatası: {ex.Message}");
+            }
+        }
+
+        private static void AnalizeEPCData(byte[] epcData)
+        {
+            if (epcData.Length < 4)
+                return;
+
+            string epcNumber = "";
+
+            // 10 byte veri: Kısa format (örn: 40010993)
+            if (epcData.Length == 10)
+            {
+                byte[] epcBytes = new byte[4];
+                Array.Copy(epcData, 1, epcBytes, 0, 4);
+                epcNumber = BitConverter.ToString(epcBytes).Replace("-", "");
+            }
+            // 18 byte veri: Uzun format (örn: 10016536)
+            else if (epcData.Length == 18)
+            {
+                byte[] epcBytes = new byte[3];
+                Array.Copy(epcData, 10, epcBytes, 0, 3);
+                string hexValue = BitConverter.ToString(epcBytes).Replace("-", "");
+                long decValue = Convert.ToInt64(hexValue, 16);
+                epcNumber = decValue.ToString();
+            }
+
+            if (!string.IsNullOrEmpty(epcNumber))
+            {
+                // Console'a her zaman yaz
+                Console.WriteLine(epcNumber);
+
+                // Sadece 4001 veya 1001 ile başlayan verileri TCP'ye gönder
+                if (epcNumber.StartsWith("4001") || epcNumber.StartsWith("1001"))
+                {
+                    BroadcastToAllClients(epcNumber);
+                }
+            }
+        }
+
+        private static void BroadcastToAllClients(string message)
+        {
+            lock (clientLock)
+            {
+                List<TcpClient> disconnectedClients = new List<TcpClient>();
+
+                foreach (var client in connectedClients)
+                {
+                    try
+                    {
+                        if (client.Connected)
+                        {
+                            NetworkStream stream = client.GetStream();
+                            byte[] data = Encoding.UTF8.GetBytes(message);
+                            stream.Write(data, 0, data.Length);
+                        }
+                        else
+                        {
+                            disconnectedClients.Add(client);
+                        }
+                    }
+                    catch
+                    {
+                        disconnectedClients.Add(client);
+                    }
+                }
+
+                // Bağlantısı kopan clientları temizle
+                foreach (var client in disconnectedClients)
+                {
+                    connectedClients.Remove(client);
+                    try { client.Close(); } catch { }
+                }
+            }
+        }
+
+        private static void HandleClient(TcpClient client)
+        {
+            try
+            {
+                NetworkStream stream = client.GetStream();
+                byte[] buffer = new byte[1024];
+
+                while (client.Connected)
+                {
+                    int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    if (bytesRead == 0)
+                        break;
+                }
+            }
+            catch { }
+            finally
+            {
+                lock (clientLock)
+                {
+                    connectedClients.Remove(client);
+                    Console.WriteLine($"[TCP] Bağlantı kesildi (Kalan: {connectedClients.Count})");
+                }
+                try { client.Close(); } catch { }
+            }
+        }
+
+        private static void Main(string[] args)
+        {
+            Console.Title = "RFID EPC TCP Server";
+            Console.WriteLine("=== RFID EPC TCP Server ===\n");
+
+            // Argüman kontrolü
+            if (args.Length < 2)
+            {
+                Console.WriteLine("Kullanım: RFIDEPCReader.exe <COM_PORT> <TCP_PORT>");
+                Console.WriteLine("Örnek: RFIDEPCReader.exe COM2 5000");
+            }
+
+            comPortName = args[0];
+            int tcpPort = int.Parse(args[1]);
+
+            // Mutex ile tek instance kontrolü
+            bool createdNew;
+            using (Mutex mutex = new Mutex(true, "ReaderAppSerialPort" + comPortName + tcpPort, out createdNew))
+            {
+                if (!createdNew)
+                {
+                    Console.WriteLine("Uygulama zaten çalışıyor! Sadece bir adet çalışabilir.");
+                    return;
+                }
+
+                try
+                {
+                    // İlk bağlantıyı aç
+                    OpenSerialPort();
+
+                    // Serial port izleme thread'i başlat
+                    Thread monitorThread = new Thread(MonitorSerialPort);
+                    monitorThread.IsBackground = true;
+                    monitorThread.Start();
+
+                    // TCP Server başlat
+                    tcpListener = new TcpListener(IPAddress.Any, tcpPort);
+                    tcpListener.Start();
+                    Console.WriteLine($"✓ TCP Server başlatıldı: Port {tcpPort}");
+                    Console.WriteLine($"  Bağlantı için: telnet localhost {tcpPort}");
+
+                    // Client kabul etmek için thread başlat
+                    Thread acceptThread = new Thread(AcceptClients);
+                    acceptThread.IsBackground = true;
+                    acceptThread.Start();
+
+                    Console.WriteLine("\n" + new string('-', 60));
+                    Console.WriteLine("EPC verileri bekleniyor...");
+                    Console.WriteLine("Çıkmak için 'Q' tuşuna basın");
+                    Console.WriteLine(new string('-', 60) + "\n");
+
+                    // Kullanıcı çıkış yapana kadar bekle
+                    while (Console.ReadKey(true).Key != ConsoleKey.Q)
+                    {
+                        Thread.Sleep(100);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Hata: {ex.Message}");
+                }
+                finally
+                {
+                    // Uygulamayı durdur
+                    isRunning = false;
+
+                    // Temizlik
+                    lock (serialPortLock)
+                    {
+                        if (serialPort != null && serialPort.IsOpen)
+                        {
+                            serialPort.Close();
+                            Console.WriteLine("\nSerial Port kapatıldı.");
+                        }
+                    }
+
+                    if (tcpListener != null)
+                    {
+                        tcpListener.Stop();
+                        Console.WriteLine("TCP Server kapatıldı.");
+                    }
+
+                    lock (clientLock)
+                    {
+                        foreach (var client in connectedClients)
+                        {
+                            try { client.Close(); } catch { }
+                        }
+                        connectedClients.Clear();
+                    }
+                }
+
+                Console.WriteLine("\nUygulama sonlandırılıyor...");
+                Thread.Sleep(1000);
+            }
+        }
+
+        private static void MonitorSerialPort()
+        {
+            int reconnectAttempt = 0;
+            const int maxReconnectDelay = 30; // Maksimum 30 saniye bekle
+
+            while (isRunning)
+            {
+                try
+                {
+                    bool needsReconnect = false;
+
+                    lock (serialPortLock)
+                    {
+                        // Port null ise veya açık değilse yeniden bağlanma gerekiyor
+                        if (serialPort == null || !serialPort.IsOpen)
+                        {
+                            needsReconnect = true;
+                        }
+                    }
+
+                    if (needsReconnect)
+                    {
+                        reconnectAttempt++;
+                        int delay = Math.Min(reconnectAttempt * 2, maxReconnectDelay);
+
+                        Console.WriteLine($"[BİLGİ] Serial Port bağlantısı koptu. {delay} saniye sonra yeniden bağlanılacak... (Deneme: {reconnectAttempt})");
+                        Thread.Sleep(delay * 1000);
+
+                        if (isRunning)
+                        {
+                            Console.WriteLine($"[BİLGİ] Yeniden bağlanılıyor: {comPortName}");
+                            OpenSerialPort();
+
+                            // Başarılı bağlantıda sayacı sıfırla
+                            lock (serialPortLock)
+                            {
+                                if (serialPort != null && serialPort.IsOpen)
+                                {
+                                    reconnectAttempt = 0;
+                                    Console.WriteLine($"✓ Yeniden bağlantı başarılı!");
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Port açıksa sayacı sıfırla
+                        reconnectAttempt = 0;
+                    }
+
+                    // Her 5 saniyede bir kontrol et
+                    Thread.Sleep(5000);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[HATA] Monitor hatası: {ex.Message}");
+                    Thread.Sleep(5000);
+                }
+            }
+        }
+
+        private static void OpenSerialPort()
+        {
+            lock (serialPortLock)
+            {
+                try
+                {
+                    // Eğer port açıksa önce kapat
+                    if (serialPort != null && serialPort.IsOpen)
+                    {
+                        serialPort.DataReceived -= SerialPort_DataReceived;
+                        serialPort.ErrorReceived -= SerialPort_ErrorReceived;
+                        serialPort.Close();
+                        serialPort.Dispose();
+                        Thread.Sleep(500); // Portun tamamen kapanması için bekle
+                    }
+
+                    // Yeni port örneği oluştur
+                    serialPort = new SerialPort
+                    {
+                        PortName = comPortName,
+                        BaudRate = baudRate,
+                        DataBits = 8,
+                        Parity = Parity.None,
+                        StopBits = StopBits.One,
+                        ReadTimeout = 1000,
+                        WriteTimeout = 1000
+                    };
+
+                    // Event handler'ları ekle
+                    serialPort.DataReceived += SerialPort_DataReceived;
+                    serialPort.ErrorReceived += SerialPort_ErrorReceived;
+
+                    // Port'u aç
+                    serialPort.Open();
+
+                    Console.WriteLine($"✓ Serial Port: {serialPort.PortName} açıldı");
+                    Console.WriteLine($"✓ Baud Rate: {serialPort.BaudRate}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[HATA] Serial Port açılamadı: {ex.Message}");
+                    serialPort = null;
+                }
+            }
+        }
+
+        private static void ProcessBuffer()
+        {
+            while (true)
+            {
+                int startIndex = dataBuffer.IndexOf(0x00);
+                if (startIndex == -1)
+                {
+                    dataBuffer.Clear();
+                    break;
+                }
+
+                if (startIndex > 0)
+                {
+                    dataBuffer.RemoveRange(0, startIndex);
+                    startIndex = 0;
+                }
+
+                int endIndex = dataBuffer.IndexOf(0xEE);
+                if (endIndex == -1)
+                {
+                    break;
+                }
+
+                int packetLength = endIndex + 1;
+                byte[] packet = dataBuffer.GetRange(0, packetLength).ToArray();
+                dataBuffer.RemoveRange(0, packetLength);
+
+                AnalizeEPCData(packet);
+            }
+
+            if (dataBuffer.Count > 1000)
+            {
+                Console.WriteLine("\n[UYARI] Buffer çok büyüdü, temizleniyor...\n");
+                dataBuffer.Clear();
+            }
+        }
+
+        private static void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            lock (serialPortLock)
+            {
+                try
+                {
+                    SerialPort sp = (SerialPort)sender;
+
+                    if (sp == null || !sp.IsOpen)
+                        return;
+
+                    int bytesToRead = sp.BytesToRead;
+
+                    if (bytesToRead > 0)
+                    {
+                        byte[] buffer = new byte[bytesToRead];
+                        sp.Read(buffer, 0, bytesToRead);
+
+                        lock (lockObject)
+                        {
+                            dataBuffer.AddRange(buffer);
+                            ProcessBuffer();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Okuma Hatası: {ex.Message}");
+                }
+            }
+        }
+
+        private static void SerialPort_ErrorReceived(object sender, SerialErrorReceivedEventArgs e)
+        {
+            Console.WriteLine($"[UYARI] Serial Port Hatası: {e.EventType}");
+        }
+    }
+}

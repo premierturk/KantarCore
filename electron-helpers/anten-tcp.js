@@ -6,6 +6,7 @@ var printToAngular;
 //#endregion
 
 var tcpmessages = [];
+var arr = [];
 let reconnectInterval = null;
 function initializeMainJsVariables() {
   const mainJs = require("../main");
@@ -149,23 +150,23 @@ function onConnData(d) {
     console.log("TCP MESAJI =>", d.toString());
   } else {
     buffer.forEach((element) => {
-      tcpmessages.push(element);
+      arr.push(element);
     });
-    if (tcpmessages.length > 100) {
-      tcpmessages = [];
+    if (arr.length > 100) {
+      arr = [];
       return;
     }
-    printToAngular("tcpmessages string : " + tcpmessages);
+    printToAngular("arr string : " + arr);
 
     // 1001 ile başlayanlarda 101,19,152 gelir
-    let bindexb1 = tcpmessages.indexOf(101);
-    let bindexb2 = tcpmessages.indexOf(19);
-    let bindex = tcpmessages.indexOf(152);
+    let bindexb1 = arr.indexOf(101);
+    let bindexb2 = arr.indexOf(19);
+    let bindex = arr.indexOf(152);
 
     // 4001 ile başlayanlarda 238,0,64 gelir
-    let dindexd1 = tcpmessages.indexOf(238);
-    let dindexd2 = tcpmessages.indexOf(0);
-    let dindex = tcpmessages.indexOf(64);
+    let dindexd1 = arr.indexOf(238);
+    let dindexd2 = arr.indexOf(0);
+    let dindex = arr.indexOf(64);
 
     if (
       bindexb1 != -1 &&
@@ -174,19 +175,27 @@ function onConnData(d) {
       bindex == bindexb2 + 1 &&
       bindexb2 == bindexb1 + 1
     ) {
-      const hex1 = byteToHex(tcpmessages[bindex]);
-      const hex2 = byteToHex(tcpmessages[bindex + 1]);
-      const hex3 = byteToHex(tcpmessages[bindex + 2]);
-      tcpmessages = [];
+      const hex1 = byteToHex(arr[bindex]);
+      const hex2 = byteToHex(arr[bindex + 1]);
+      const hex3 = byteToHex(arr[bindex + 2]);
+      arr = [];
       if (hex1 === undefined || hex2 === undefined || hex3 === undefined) {
         return;
       }
       var data = parseInt(hex1 + hex2 + hex3, 16);
       var dataString = data.toString();
       if (dataString.startsWith("1001")) {
-        printToAngular("TCP MESSAGE => " + dataString);
-        mainWindow.webContents.send("tcp", dataString);
-        tcpmessages = [];
+        tcpmessages.push(data);
+        if (tcpmessages.length == 2) {
+          let allSame = [...new Set(tcpmessages)].length == 1;
+          if (allSame) {
+            printToAngular("TCP MESSAGE => " + dataString);
+            mainWindow.webContents.send("tcp", dataString);
+            tcpmessages = [];
+          } else {
+            tcpmessages = tcpmessages.slice(1);
+          }
+        }
       }
     } else if (
       dindexd1 != -1 &&
@@ -195,11 +204,11 @@ function onConnData(d) {
       dindex == dindexd2 + 1 &&
       dindexd2 == dindexd1 + 1
     ) {
-      const hex1 = byteToHex(tcpmessages[dindex]);
-      const hex2 = byteToHex(tcpmessages[dindex + 1]);
-      const hex3 = byteToHex(tcpmessages[dindex + 2]);
-      const hex4 = byteToHex(tcpmessages[dindex + 3]);
-      tcpmessages = [];
+      const hex1 = byteToHex(arr[dindex]);
+      const hex2 = byteToHex(arr[dindex + 1]);
+      const hex3 = byteToHex(arr[dindex + 2]);
+      const hex4 = byteToHex(arr[dindex + 3]);
+      arr = [];
       if (
         hex1 === undefined ||
         hex2 === undefined ||
@@ -211,9 +220,17 @@ function onConnData(d) {
       var data = parseInt(hex1 + hex2 + hex3 + hex4);
       var dataString = data.toString();
       if (dataString.startsWith("4001")) {
-        printToAngular("TCP MESSAGE => " + dataString);
-        mainWindow.webContents.send("tcp", dataString);
-        tcpmessages = [];
+        tcpmessages.push(data);
+        if (tcpmessages.length == 2) {
+          let allSame = [...new Set(tcpmessages)].length == 1;
+          if (allSame) {
+            printToAngular("TCP MESSAGE => " + dataString);
+            mainWindow.webContents.send("tcp", dataString);
+            tcpmessages = [];
+          } else {
+            tcpmessages = tcpmessages.slice(1);
+          }
+        }
       }
     }
 

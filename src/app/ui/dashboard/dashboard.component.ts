@@ -25,7 +25,7 @@ export class DashboardComponent implements OnInit {
   @ViewChild('grid') grid: GridComponent;
   public view: GridDataResult;
   public list: any[] = [];
-  public listEnSon: any[] = [];
+  // public listEnSon: any[] = [];
   public tasimaKabulListesi: any[] = [];
   public ddPlakaBelgeFilter: any[] = [];
   public ddTumPlakalar: any[] = [];
@@ -170,9 +170,6 @@ export class DashboardComponent implements OnInit {
     this.Intervalclear(3);
   }
 
-
-
-
   @HostListener('window:keydown', ['$event'])
   keyEvent(event: KeyboardEvent) {
     const allowedCharactersRegex = /[0-9akf-]/i;
@@ -195,6 +192,7 @@ export class DashboardComponent implements OnInit {
     this.formData.BarkodNo = '';
     this.barcode = '';
     var barkodKontrol = code.replaceAll("Shift", "").replaceAll("Control", "").replaceAll("*", "-").replaceAll("B", "").toUpperCase();
+
     if (barkodKontrol.includes("KF-") && barkodKontrol.includes("-KF"))   // KAMU FİŞ
     {
       this.barkodTuru = "Kamu Fiş";
@@ -615,33 +613,40 @@ export class DashboardComponent implements OnInit {
 
 
   public SpeedTest() {
+    var speedTarih = localStorage.getItem('speedTest')
+    if (speedTarih != null) {
+      if (new Date(speedTarih).getTime() + 3600000 < new Date().getTime()) {
+        localStorage.setItem('speedTest', new Date().toString())
+        try {
+          const basTar = performance.now();
+          this.ds.getNoMessage(`${this.url}/donw10mb`).then(() => {
+            const bitTar = performance.now();
+            const apiSaniye = (bitTar - basTar) / 1000;
+            const dosyaBoyut = 10 * 1024 * 1024;  // 10mb dosyayı byte a çeviriyorum
+            const speedMbps = (dosyaBoyut * 8) / (apiSaniye * 1000 * 1000);
 
-    try {
-      const basTar = performance.now();
-      this.ds.getNoMessage(`${this.url}/donw10mb`).then(() => {
-        const bitTar = performance.now();
-        const apiSaniye = (bitTar - basTar) / 1000;
-        const dosyaBoyut = 10 * 1024 * 1024;  // 10mb dosyayı byte a çeviriyorum
-        const speedMbps = (dosyaBoyut * 8) / (apiSaniye * 1000 * 1000);
+            console.log(`İndirme hızı: ${speedMbps.toFixed(2)} Mbps`);
 
-        console.log(`İndirme hızı: ${speedMbps.toFixed(2)} Mbps`);
-
-        this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir&logType=Kantar Speed Test Hesabı&data=null`, {
-          referanceId: 0,
-          logText: `${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir`,
-          logType: 'Kantar Speed Test Hesabı',
-          data: null
-        });
-      });
-
-    } catch (error) {
-      console.error("Hız testi sırasında bir hata oluştu:", error);
-      this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=Hız testi sırasında hata oluştu: ${error.message}&logType=Kantar Speed Test Hata&data=null`, {
-        referanceId: 0,
-        logText: `Hız testi sırasında hata oluştu: ${error.message}`,
-        logType: 'Kantar Speed Test Hata',
-        data: null
-      });
+            this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir&logType=Kantar Speed Test Hesabı&data=null`, {
+              referanceId: 0,
+              logText: `${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir`,
+              logType: 'Kantar Speed Test Hesabı',
+              data: null
+            });
+          });
+        } catch (error) {
+          console.error("Hız testi sırasında bir hata oluştu:", error);
+          this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=Hız testi sırasında hata oluştu: ${error.message}&logType=Kantar Speed Test Hata&data=null`, {
+            referanceId: 0,
+            logText: `Hız testi sırasında hata oluştu: ${error.message}`,
+            logType: 'Kantar Speed Test Hata',
+            data: null
+          });
+        }
+      }
+    }
+    else {
+      localStorage.setItem('speedTest', new Date().toString())
     }
   }
 
@@ -679,7 +684,7 @@ export class DashboardComponent implements OnInit {
 
 
     this.SpeedTest();
-    this.speedTestInterval = setInterval(this.SpeedTest, 3600000);
+    // this.speedTestInterval = setInterval(this.SpeedTest, 3600000);
 
   }
 
@@ -699,7 +704,7 @@ export class DashboardComponent implements OnInit {
       this.list = await this.ds.get(`${this.url}/ParaYukleme/GetRaporMulti?q=${btoa(query)}`);
       this.isLoading = false;
 
-      this.listEnSon = await this.ds.getNoMessage(`${this.url}/ParaYukleme/GetRaporMulti?q=${btoa(querySonKayit)}`);
+      // this.listEnSon = await this.ds.getNoMessage(`${this.url}/ParaYukleme/GetRaporMulti?q=${btoa(querySonKayit)}`);
 
 
       var offlineKayit = JSON.parse(window.localStorage.getItem('offlineRequests')) // Offline kayıtların grid de sürekli gösteriminin sağlanması
@@ -729,10 +734,10 @@ export class DashboardComponent implements OnInit {
       this.formData.FirmaAdi = null;
       this.countdown = 0;
       clearInterval(this.countdownInterval);
-      this.formData.AracId = null;
-      this.formData.Dara = 0;
-      this.countplakadown = 0;
-      clearInterval(this.countplakadownInterval);
+      // this.formData.AracId = null;
+      // this.formData.Dara = 0;
+      // this.countplakadown = 0;
+      // clearInterval(this.countplakadownInterval);
 
       return;
     }
@@ -1067,7 +1072,7 @@ export class DashboardComponent implements OnInit {
       this.ogsPlakaNo = '';
 
       this.Intervalclear(3);
-
+      this.SpeedTest();
       this.initializeFormData();
 
     }
