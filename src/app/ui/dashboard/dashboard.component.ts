@@ -958,7 +958,7 @@ export class DashboardComponent implements OnInit {
     console.log("OGS Etiket Data: " + data);
 
     const component = DashboardComponent.componentInstance;
-
+    component.OgsAracMatch = '';
     component.isPulsingGreen = true;
     component.ref.detectChanges();
 

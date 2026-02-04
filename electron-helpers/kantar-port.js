@@ -52,10 +52,12 @@ class KantarPort {
         .replaceAll("(kg)", "");
     } else if (AppConfig.kantarMarka == "ideKantar") {
       return msg
+        .split(" ")[0]
         .replaceAll("A", "")
         .replaceAll("B", "")
         .replaceAll("C", "")
-        .replaceAll(" ", "");
+        .replaceAll(" ", "")
+        .replaceAll("@", "");
     } else if (AppConfig.kantarMarka == "tamTarti") {
       var str = msg.split(" ")[0];
       var data = str.substring(str.length - 6);
