@@ -117,6 +117,7 @@ export class DashboardComponent implements OnInit {
     this.BindGrid();
     onScan.attachTo(document, {
       onScan: function (sScanned) {
+        console.log(sScanned)
         if (sScanned.includes("B")) {
 
           sScanned = sScanned.replace("*", "-");
@@ -945,7 +946,7 @@ export class DashboardComponent implements OnInit {
   }
 
   onDataKantar(event, data) {
-    // console.log(data);
+    console.log(data);
     const component = DashboardComponent.componentInstance;
     component.formData.Tonaj = parseInt(data[0]);
     component.ref.detectChanges();

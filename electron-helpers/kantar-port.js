@@ -51,13 +51,16 @@ class KantarPort {
         .replaceAll(" ", "")
         .replaceAll("(kg)", "");
     } else if (AppConfig.kantarMarka == "ideKantar") {
-      return msg
-        .split(" ")[0]
-        .replaceAll("A", "")
-        .replaceAll("B", "")
-        .replaceAll("C", "")
-        .replaceAll(" ", "")
-        .replaceAll("@", "");
+      // return msg
+      //   .split(" ")[0]
+      //   .replaceAll("A", "")
+      //   .replaceAll("B", "")
+      //   .replaceAll("C", "")
+      //   .replaceAll(" ", "")
+      //   .replaceAll("@", "");
+        let cleaned = msg.replace(/[ABCJ@]/g, "").trim();
+let result = cleaned.split(/\s+/)[0];
+return result || "0"
     } else if (AppConfig.kantarMarka == "tamTarti") {
       var str = msg.split(" ")[0];
       var data = str.substring(str.length - 6);

@@ -416,11 +416,11 @@
           {{ countplakadown }}
         </div>
       </div>
-      <label
-        *ngIf="OgsAracMatch != ''"
-        class="mt-2 text-danger font-weight-bold"
-        >{{ OgsAracMatch }}</label
-      >
+  <label *ngIf="OgsAracMatch != ''" class="mt-2 text-danger w-100 font-weight-bold" 
+         style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;height: 18px;">
+    {{ OgsAracMatch }}
+  </label>
+      
       <div class="mb-2 position-relative countdown-wrapper">
         <label>Belge No</label>
         <kendo-textbox

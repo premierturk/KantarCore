@@ -146,8 +146,6 @@ export class DataSource {
 
   async postNoMess(url: string, data: any) {
 
-
-
     try {
       var success = false;
       const resp = await httpClient.post(url, data);
@@ -159,7 +157,7 @@ export class DataSource {
       return { success: success, data: resp.data };
     } catch (err) {
       data.sonuc = err.response.data;
-
+      this.handleErrorResponse(err);
       return {
         success: false
       };
