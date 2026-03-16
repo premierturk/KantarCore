@@ -120,7 +120,7 @@ export class DashboardComponent implements OnInit {
         console.log(sScanned)
         if (sScanned.includes("B")) {
 
-          sScanned = sScanned.replace("*", "-");
+          sScanned = sScanned.replaceAll("B", "").replace("*", "-");
 
           this.barcode = '';
           const component = DashboardComponent.componentInstance;

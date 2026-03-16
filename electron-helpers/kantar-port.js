@@ -60,7 +60,7 @@ class KantarPort {
       //   .replaceAll("@", "");
         let cleaned = msg.replace(/[ABCJ@]/g, "").trim();
 let result = cleaned.split(/\s+/)[0];
-return result || "0"
+return parseInt(result || "0")
     } else if (AppConfig.kantarMarka == "tamTarti") {
       var str = msg.split(" ")[0];
       var data = str.substring(str.length - 6);
