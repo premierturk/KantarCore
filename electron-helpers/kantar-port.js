@@ -51,17 +51,15 @@ class KantarPort {
         .replaceAll(" ", "")
         .replaceAll("(kg)", "");
     } else if (AppConfig.kantarMarka == "ideKantar") {
-      // return msg
-      //   .split(" ")[0]
-      //   .replaceAll("A", "")
-      //   .replaceAll("B", "")
-      //   .replaceAll("C", "")
-      //   .replaceAll(" ", "")
-      //   .replaceAll("@", "");
-        let cleaned = msg.replace(/[ABCJ@]/g, "").trim();
-let result = cleaned.split(/\s+/)[0];
-return parseInt(result || "0")
-    } else if (AppConfig.kantarMarka == "tamTarti") {
+      try {
+        let match = msg.match(/-?\d+/); 
+    return match ? parseInt(match[0]) : 0;
+      } catch (error) {
+        console.log("Kantar verisi int'e çevrilemedi "+error);
+        return 0;
+      }
+    
+} else if (AppConfig.kantarMarka == "tamTarti") {
       var str = msg.split(" ")[0];
       var data = str.substring(str.length - 6);
       return data;
@@ -107,68 +105,8 @@ return parseInt(result || "0")
   }
 
   static onData(data) {
-    // console.log(data);
-    // printToAngular(data);
-    // debugger;
-
-    // for (let i = 0; i < data.length; i++) {
-    //   datas.push(data[i]);
-    // }
-
-    // printToAngular(datas);
-
-    // for (let index = 0; index < datas.length; index++) {
-
-    //    if(
-    //     array[index] == 2 &&
-    //     array[index+1] == 33 &&
-    //     array[index+2] == 49
-    //    )
-
-    // }
-
-    // if (datas[0] == 2 && datas[1] == 33 && datas[2] == 49 && datas[20] == 13) {
-    //   //end
-
-    //   var k = [];
-    //   k.push(datas[5]);
-    //   k.push(datas[6]);
-    //   k.push(datas[7]);
-    //   k.push(datas[8]);
-    //   k.push(datas[9]);
-    //   k.push(datas[10]);
-
-    //   var tonaj = Buffer.from(k).toString();
-
-    //   datas = [];
-    //   messages.push(parseInt(tonaj));
-
-    //   if (messages.length == 5) {
-    //     let allSame = [...new Set(messages)].length == 1;
-    //     if (allSame) {
-    //       mainWindow.webContents.send("kantar", [messages[0]]);
-    //       console.log("Data sended => " + messages[0]);
-    //       messages = [];
-    //     } else {
-    //       messages = messages.slice(1);
-    //     }
-    //   }
-    //   tonaj = "";
-    //   console.log("TONAJ = > " + tonaj);
-    //   printToAngular("TONAJ = > " + tonaj);
-    // } else {
-    //   console.log("TONAJ ELSE = > " + data);
-    //   printToAngular("TONAJ ELSE = > " + data);
-    //   for (let index = 0; index < datas.length; index++) {
-    //     if (datas[index] == 13) datas = [];
-    //   }
-    // }
 
     currMessage += Buffer.from(data).toString();
-
-    var firstread = currMessage;
-    // console.log("First Read =>" + currMessage);
-    // printToAngular("First Read =>" + currMessage);
 
     if (
       !currMessage.endsWith("\\r") && //fake data from hercules
@@ -181,10 +119,6 @@ return parseInt(result || "0")
     if (AppConfig.kantarMarka == "tamTarti" && !currMessage.includes("\r"))
       return;
 
-    var complete = currMessage;
-    // console.log("Completed Msg =>" + currMessage);
-    // printToAngular("Completed Msg =>" + currMessage);
-
     currMessage = currMessage
       .replaceAll("\\r", "")
       .replaceAll("\r", "")
@@ -195,39 +129,15 @@ return parseInt(result || "0")
       currMessage = "";
       return;
     }
-    var before = currMessage;
-    // console.log("Before Parser =>" + currMessage);
-    // printToAngular("Before Parser =>" + currMessage);
-
+   
     currMessage = KantarPort.dataParser(currMessage); //parse kantar data
-    var after = currMessage;
-    // console.log(
-    //   "First Read =>" +
-    //     firstread +
-    //     "Completed Msg =>" +
-    //     complete +
-    //     " Before Parser =>" +
-    //     before +
-    //     " After Parser =>" +
-    //     after
-    // );
-    // printToAngular(
-    //   "First Read =>" +
-    //     firstread +
-    //     "Completed Msg =>" +
-    //     complete +
-    //     " Before Parser =>" +
-    //     before +
-    //     " After Parser =>" +
-    //     after
-    // );
 
     messages.push(currMessage);
 
     if (messages.length == 3) {
       let allSame = [...new Set(messages)].length == 1;
       if (allSame) {
-        mainWindow.webContents.send("kantar", [messages[0]]);
+        mainWindow.webContents.send("kantar", messages[0]);
         // console.log("Data sended => " + messages[0]);
         messages = [];
       } else {

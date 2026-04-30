@@ -948,7 +948,8 @@ export class DashboardComponent implements OnInit {
   onDataKantar(event, data) {
     console.log(data);
     const component = DashboardComponent.componentInstance;
-    component.formData.Tonaj = parseInt(data[0]);
+    component.formData.Tonaj = parseInt(data);
+    console.log(component.formData.Tonaj)
     component.ref.detectChanges();
     // setTimeout(() => {
     //   component.save();
@@ -969,13 +970,13 @@ export class DashboardComponent implements OnInit {
     }, 500);
     var arac = component.ddTumPlakalar.filter(x => x.OGSEtiket == data)[0];
     if (!arac) {
-      component.OgsAracMatch = `*Okunan Etiket (${data}) - Eşleşen Plaka Bulunamadı`
+      component.OgsAracMatch = `*(${data})-Plaka Bulunamadı`
       component.ogsPlakaNo = data + '-Eşleşme yok'
       component.ref.detectChanges();
       return;
     }
     component.OgsAracId = arac.AracId;
-    component.OgsAracMatch = `*Okunan Etiket (${data}) - Eşleşen Plaka (${arac.PlakaNo})`
+    component.OgsAracMatch = `*(${data})-(${arac.PlakaNo})`
     component.ogsPlakaNo = data + '-' + arac.PlakaNo
 
     if (component.formData.AracId == null || component.formData.AracId != arac.AracId) {

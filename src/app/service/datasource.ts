@@ -157,7 +157,7 @@ export class DataSource {
       return { success: success, data: resp.data };
     } catch (err) {
       data.sonuc = err.response.data;
-      this.handleErrorResponse(err);
+      // this.handleErrorResponse(err);
       return {
         success: false
       };
