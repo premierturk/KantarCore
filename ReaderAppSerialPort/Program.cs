@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO.Ports;
 using System.Linq;
 using System.Collections.Generic;
@@ -128,6 +128,9 @@ namespace RFIDEPCReader
 
         private static void HandleClient(TcpClient client)
         {
+            string clientInfo = "Bilinmeyen";
+            try { clientInfo = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString(); } catch { }
+
             try
             {
                 NetworkStream stream = client.GetStream();
@@ -138,6 +141,47 @@ namespace RFIDEPCReader
                     int bytesRead = stream.Read(buffer, 0, buffer.Length);
                     if (bytesRead == 0)
                         break;
+
+                    string receivedData = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                    Console.WriteLine($"[TCP] {clientInfo} istemcisinden gelen veri: {receivedData}");
+
+                    try
+                    {
+                        // Gelen verideki boşluk ve satır atlamaları temizle
+                        string hexStr = receivedData.Trim().Replace(" ", "").Replace("\r", "").Replace("\n", "");
+
+                        if (!string.IsNullOrEmpty(hexStr))
+                        {
+                            // Uzunluk tek ise başa 0 ekle ki byte çevriminde hata olmasın
+                            if (hexStr.Length % 2 != 0)
+                                hexStr = "0" + hexStr;
+
+                            // Hex stringi byte dizisine çevir
+                            byte[] hexBytes = new byte[hexStr.Length / 2];
+                            for (int i = 0; i < hexBytes.Length; i++)
+                            {
+                                hexBytes[i] = Convert.ToByte(hexStr.Substring(i * 2, 2), 16);
+                            }
+
+                            // Seri porta yaz
+                            lock (serialPortLock)
+                            {
+                                if (serialPort != null && serialPort.IsOpen)
+                                {
+                                    serialPort.Write(hexBytes, 0, hexBytes.Length);
+                                    Console.WriteLine($"[SERI PORT] Veri yazıldı: {hexStr}");
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[SERI PORT] Port açık değil, veri yazılamadı.");
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[HATA] Seri porta yazma başarısız: {ex.Message}");
+                    }
                 }
             }
             catch { }
@@ -360,6 +404,30 @@ namespace RFIDEPCReader
         {
             while (true)
             {
+
+                try
+                {
+                    var bytes = dataBuffer.GetRange(0, dataBuffer.Count).ToArray();
+                    var text = Encoding.UTF8.GetString(bytes);
+                    //if (text.Contains("OPENED") || text.Contains("CLOSED"))
+                    //{
+
+                        //BroadcastToAllClients(text);
+
+
+                        Console.WriteLine(text.Split(' ')[1]);
+                       // dataBuffer.Clear();
+                    //}
+
+
+                }
+                catch (Exception)
+                {
+
+
+                }
+
+
                 int startIndex = dataBuffer.IndexOf(0x00);
                 if (startIndex == -1)
                 {
@@ -384,6 +452,10 @@ namespace RFIDEPCReader
                 dataBuffer.RemoveRange(0, packetLength);
 
                 AnalizeEPCData(packet);
+
+
+
+
             }
 
             if (dataBuffer.Count > 1000)

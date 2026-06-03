@@ -5,3 +5,10 @@ C:\Users\bbekec\OneDrive - PREMIERTURK BILGI TEKNOLOJILERI A.S\Masaüstü\Reader
 C:\Users\bbekec\OneDrive - PREMIERTURK BILGI TEKNOLOJILERI A.S\Masaüstü\ReaderApp\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.csproj.CoreCompileInputs.cache
 C:\Users\bbekec\OneDrive - PREMIERTURK BILGI TEKNOLOJILERI A.S\Masaüstü\ReaderApp\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.exe
 C:\Users\bbekec\OneDrive - PREMIERTURK BILGI TEKNOLOJILERI A.S\Masaüstü\ReaderApp\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.pdb
+C:\Users\sakman\Desktop\ReaderAppSerialPort\bin\Debug\ReaderAppSerialPort.exe.config
+C:\Users\sakman\Desktop\ReaderAppSerialPort\bin\Debug\ReaderAppSerialPort.exe
+C:\Users\sakman\Desktop\ReaderAppSerialPort\bin\Debug\ReaderAppSerialPort.pdb
+C:\Users\sakman\Desktop\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.csproj.AssemblyReference.cache
+C:\Users\sakman\Desktop\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.csproj.CoreCompileInputs.cache
+C:\Users\sakman\Desktop\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.exe
+C:\Users\sakman\Desktop\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.pdb

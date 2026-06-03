@@ -188,6 +188,7 @@ export class DashboardComponent implements OnInit {
   }
 
   public async belgeNoFromBarcode(code) {
+    this.formData.Tonaj = 0;
     this.isLoading = true;
     console.log("Belgeyi Okutunca Parse Edilen Yer: " + code)
     this.formData.BarkodNo = '';
@@ -275,6 +276,15 @@ export class DashboardComponent implements OnInit {
         if (this.formData.BelgeNo != barkodBelge || this.barkodElleGiris) {
           var kabulListesiSorgu = await this.ds.post(`${this.url}/kantar/KabulBelgesiKontrolV2`, { 'BelgeNo': barkodBelge, 'BarkodNo': barkodKontrol });
           if (kabulListesiSorgu.success) {
+            if ((this.kantarConfig.depolamaAlanId != kabulListesiSorgu.data.DepolamaAlanId) && (kabulListesiSorgu.data.DepolamaAlanId != undefined) && (kabulListesiSorgu.data.DepolamaAlanId != null)) {
+              Notiflix.Notify.warning("Bu belge farklı depolama alanı için düzenlenmiştir. Döküm kaydını onaylıyor musunuz?")
+              this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${barkodBelge} belgesi ${this.kantarConfig.kantarAdi} depolama alanına gelmiştir&logType=Kantar Farklı Depolama Alanı&data=null`, {
+                referanceId: 0,
+                logText: `${barkodBelge} belgesi ${this.kantarConfig.kantarAdi} depolama alanına gelmiştir`,
+                logType: 'Kantar Farklı Depolama Alanı Kontrolü',
+                data: null
+              });
+            }
             if (this.user.ilid !== 57) {
               this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kabulListesiSorgu.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
               if (this.formData.AracId != null && (kabulListesiSorgu.data.Araclar.filter(x => x.AracId == this.formData.AracId)[0] == null)) {
@@ -381,6 +391,15 @@ export class DashboardComponent implements OnInit {
         if (this.formData.BelgeNo != barkodBelge || this.barkodElleGiris) {
           var kabulListesiSorgu = await this.ds.post(`${this.url}/kantar/KabulBelgesiKontrolV2`, { 'BelgeNo': barkodBelge, 'BarkodNo': barkodKontrol });
           if (kabulListesiSorgu.success) {
+            if ((this.kantarConfig.depolamaAlanId != kabulListesiSorgu.data.DepolamaAlanId) && (kabulListesiSorgu.data.DepolamaAlanId != undefined) && (kabulListesiSorgu.data.DepolamaAlanId != null)) {
+              Notiflix.Notify.warning("Bu belge farklı depolama alanı için düzenlenmiştir. Döküm kaydını onaylıyor musunuz?")
+              this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${barkodBelge} belgesi ${this.kantarConfig.kantarAdi} depolama alanına gelmiştir&logType=Kantar Farklı Depolama Alanı&data=null`, {
+                referanceId: 0,
+                logText: `${barkodBelge} belgesi ${this.kantarConfig.kantarAdi} depolama alanına gelmiştir`,
+                logType: 'Kantar Farklı Depolama Alanı Kontrolü',
+                data: null
+              });
+            }
             this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kabulListesiSorgu.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
             if (this.formData.AracId != null && (kabulListesiSorgu.data.Araclar.filter(x => x.AracId == this.formData.AracId)[0] == null)) {
               this.formData.AracId = null;

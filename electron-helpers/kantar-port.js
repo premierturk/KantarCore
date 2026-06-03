@@ -51,13 +51,21 @@ class KantarPort {
         .replaceAll(" ", "")
         .replaceAll("(kg)", "");
     } else if (AppConfig.kantarMarka == "ideKantar") {
-      try {
-        let match = msg.match(/-?\d+/); 
-    return match ? parseInt(match[0]) : 0;
-      } catch (error) {
-        console.log("Kantar verisi int'e çevrilemedi "+error);
-        return 0;
-      }
+      if (!msg) return 0;
+
+  let num = '';
+  
+  for (let i = 0; i < msg.length; i++) {
+    const c = msg[i];
+
+    if ((c >= '0' && c <= '9') || c === '-') {
+      num += c;
+    } else if (num.length > 0) {
+      break;
+    }
+  }
+
+  return num ? parseInt(num, 10) : 0;
     
 } else if (AppConfig.kantarMarka == "tamTarti") {
       var str = msg.split(" ")[0];
