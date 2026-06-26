@@ -1,5 +1,10 @@
 import { Injectable, isDevMode } from '@angular/core';
 
+export interface CameraConfig {
+    name: string;
+    url: string;
+}
+
 @Injectable({
     providedIn: 'root',
 })
@@ -15,6 +20,7 @@ export class KantarConfig {
     kantar: boolean;
     kantarMarka: string;
     serialPort: SerialPort;
+    cameras?: CameraConfig[];
 
 
     constructor() {
@@ -22,6 +28,9 @@ export class KantarConfig {
         for (const [key, value] of Object.entries(config)) {
             if (key != "serialPort") this[key] = value;
             else this[key] = new SerialPort(value);
+        }
+        if (!this.cameras) {
+            this.cameras = [];
         }
         this.logoUrl = this.url + "/HYS/img/logo/logo.png";
 

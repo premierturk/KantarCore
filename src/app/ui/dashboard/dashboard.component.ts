@@ -109,6 +109,7 @@ export class DashboardComponent implements OnInit {
     this.bitTar = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     this.afterInit();
+    console.log("Loaded cameras config:", this.kantarConfig.cameras);
 
   }
 
@@ -723,7 +724,7 @@ export class DashboardComponent implements OnInit {
       this.isLoading = true;
       this.list = await this.ds.get(`${this.url}/ParaYukleme/GetRaporMulti?q=${btoa(query)}`);
       this.isLoading = false;
-
+      console.log(this.list)
       // this.listEnSon = await this.ds.getNoMessage(`${this.url}/ParaYukleme/GetRaporMulti?q=${btoa(querySonKayit)}`);
 
 
@@ -1074,6 +1075,11 @@ export class DashboardComponent implements OnInit {
       var result = await this.ds.post(`${this.url}/kantar/hafriyatkabul/KabulBelgesi`, { AracId: this.formData.AracId, FirmaId: null, SahaId: sahaId, UserId: this.user.userid, BelgeNo: this.formData.BelgeNo, BarkodNo: this.formData.BarkodNo, DepolamaAlanId: this.kantarConfig.depolamaAlanId, Tonaj: this.formData.Tonaj, Dara: this.formData.Dara, GirisCikis: 'Giriş', isOffline: this.formData.IsOffline, IslemTarihi: new Date(), OgsPlakaNo: this.ogsPlakaNo });
       this.isLoading = false;
       if (result.success) {
+        if (this.list.length < 1) {
+          var depolamaDurum = await this.ds.post(`${this.url}/DepolamaAlaniDurum`, { DepolamaAlaniDurumId: 0, DepolamaAlanId: this.kantarConfig.depolamaAlanId, Tarih: new Date(), DepolamaAlaniStatuId: "1", Durum: "", SMSDurum: false, Aciklama: "", Active: null, CreateUserId: this.user.userid, CreateDate: new Date() });
+          console.log(depolamaDurum)
+        }
+
         if (this._electronService.ipcRenderer) {
           console.log("Bariyer Açma Komutu")
           this._electronService.ipcRenderer.send('bariyer');
@@ -1081,6 +1087,27 @@ export class DashboardComponent implements OnInit {
         if (this.barkodTuru != "Kamu Fiş") {
           this.responseToPrint(result.data);
         }
+
+        if (this.kantarConfig.cameras && this.kantarConfig.cameras.length > 0) {
+          console.log("Kabul belgesi kaydedildi. Kamera kaydi tetikleniyor. Yapilandirilmis Kameralar:", this.kantarConfig.cameras);
+          if (this._electronService.ipcRenderer) {
+            const plaka = (result.data && (result.data.plakano || result.data.PlakaNo))
+              ? (result.data.plakano || result.data.PlakaNo)
+              : 'BilinmeyenPlaka';
+            const absoluteApiUrl = `${this.url}/kantar/DokumGorsel`;
+
+            this._electronService.ipcRenderer.send('capture-cameras', {
+              plaka: plaka,
+              cameras: this.kantarConfig.cameras,
+              uploadUrl: absoluteApiUrl,
+              id: result.data.fisno,
+              isHafriyatDokum: result.data.isHafriyatDokum
+            });
+          }
+        } else {
+          console.log("Kabul belgesi kaydedildi fakat tanimli kamera bulunamadi.");
+        }
+
         this.formData.BarkodNo = '';
         this.barcode = '';
         this.IsOfflineBackUp = this.formData.IsOffline;

@@ -6,8 +6,22 @@ app.controller("myCtrl", function ($scope) {
   ipcRenderer.on("config", (event, data) => {
     console.log(data);
     $scope.kantarConfig = data;
+    if (!$scope.kantarConfig.cameras) {
+      $scope.kantarConfig.cameras = [];
+    }
     $scope.$apply();
   });
+
+  $scope.addCamera = function () {
+    if (!$scope.kantarConfig.cameras) {
+      $scope.kantarConfig.cameras = [];
+    }
+    $scope.kantarConfig.cameras.push({ name: "", url: "" });
+  };
+
+  $scope.removeCamera = function (index) {
+    $scope.kantarConfig.cameras.splice(index, 1);
+  };
 
   $scope.save = function () {
     if (

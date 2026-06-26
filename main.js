@@ -12,6 +12,7 @@ const {
   openSettingsWindow,
 } = require("./electron-helpers/ayarlar/ayarlarMenu");
 const AppFiles = require("./electron-helpers/app-files");
+const CameraCapture = require("./electron-helpers/camera-capture");
 // var ping = require("ping");
 let mainWindow;
 const printToAngular = (message) =>
@@ -79,6 +80,8 @@ ipcMain.on("bariyer", AntenTcp.openBariyer);
 ipcMain.on("kantarConfig", AppConfig.update);
 
 ipcMain.on("antenRestart", AntenTcp.antenRestart);
+
+ipcMain.on("capture-cameras", CameraCapture.captureCameras);
 
 ipcMain.on("tcprestart", AntenTcp.connectToHopland);
 
