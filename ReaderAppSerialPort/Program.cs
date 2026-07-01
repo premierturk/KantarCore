@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Diagnostics;
+using System.Web.Script.Serialization;
 
 namespace RFIDEPCReader
 {
@@ -155,11 +156,15 @@ namespace RFIDEPCReader
              {"plate":"34OTO34","ts":"2026-06-29T15:33:03","evidence":"data/evidence/34OTO34_20260629_153303.jpg"}
 
              */
-            string ptsData = receivedData.Trim().Replace(" ", "").Replace("\r", "").Replace("\n", "");
+            string ptsData = receivedData.Trim();
             if (ptsData.StartsWith("{") && ptsData.EndsWith("}"))
             {
-
-              return;
+              var pts = new JavaScriptSerializer().Deserialize<PtsPayload>(ptsData);
+              if (pts != null && !string.IsNullOrEmpty(pts.plate))
+              {
+                Console.WriteLine($"[PTS] Plaka: {pts.plate}, Zaman: {pts.ts}, Kanıt: {pts.evidence}");
+              }
+              continue;
             }
             
 
@@ -522,6 +527,13 @@ namespace RFIDEPCReader
     private static void SerialPort_ErrorReceived(object sender, SerialErrorReceivedEventArgs e)
     {
       Console.WriteLine($"[UYARI] Serial Port Hatası: {e.EventType}");
+    }
+
+    private class PtsPayload
+    {
+      public string plate { get; set; }
+      public string ts { get; set; }
+      public string evidence { get; set; }
     }
   }
 }
