@@ -162,7 +162,8 @@ namespace RFIDEPCReader
               var pts = new JavaScriptSerializer().Deserialize<PtsPayload>(ptsData);
               if (pts != null && !string.IsNullOrEmpty(pts.plate))
               {
-                Console.WriteLine($"[PTS] Plaka: {pts.plate}, Zaman: {pts.ts}, Kanıt: {pts.evidence}");
+                Console.WriteLine($"[PTS] {pts.plate}");
+                BroadcastToAllClients(ptsData);
               }
               continue;
             }
@@ -536,4 +537,6 @@ namespace RFIDEPCReader
       public string evidence { get; set; }
     }
   }
+
+  // RTSP YAYINI : rtsp://admin:Rbyl!1524@10.210.210.XX:554/Streaming/Channels/101
 }

@@ -19,3 +19,10 @@ D:\PROJECTS\KantarCore\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.csproj.
 D:\PROJECTS\KantarCore\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.csproj.CoreCompileInputs.cache
 D:\PROJECTS\KantarCore\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.exe
 D:\PROJECTS\KantarCore\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.pdb
+D:\KantarCore\ReaderAppSerialPort\bin\Debug\ReaderAppSerialPort.exe.config
+D:\KantarCore\ReaderAppSerialPort\bin\Debug\ReaderAppSerialPort.exe
+D:\KantarCore\ReaderAppSerialPort\bin\Debug\ReaderAppSerialPort.pdb
+D:\KantarCore\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.csproj.AssemblyReference.cache
+D:\KantarCore\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.csproj.CoreCompileInputs.cache
+D:\KantarCore\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.exe
+D:\KantarCore\ReaderAppSerialPort\obj\Debug\ReaderAppSerialPort.pdb

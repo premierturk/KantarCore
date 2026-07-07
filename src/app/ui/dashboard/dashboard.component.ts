@@ -15,6 +15,11 @@ import { SahaSecimiComponent } from './saha-secimi/saha-secimi.component';
 import onScan from 'onscan.js';
 import { FormControl, FormGroup } from '@angular/forms';
 
+let lastTagValue: string = "";
+let lastTagTimeVal: number = 0;
+let lastPlateValue: string = "";
+let lastPlateTimeVal: number = 0;
+
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
@@ -977,7 +982,7 @@ export class DashboardComponent implements OnInit {
   }
 
   onDataTcp(event, data) {
-    console.log("OGS Etiket Data: " + data);
+    console.log("OGS/PTS TCP Data: " + data);
 
     const component = DashboardComponent.componentInstance;
     component.OgsAracMatch = '';
@@ -988,21 +993,127 @@ export class DashboardComponent implements OnInit {
       component.isPulsingGreen = false;
       component.ref.detectChanges();
     }, 500);
-    var arac = component.ddTumPlakalar.filter(x => x.OGSEtiket == data)[0];
-    if (!arac) {
-      component.OgsAracMatch = `*(${data})-Plaka Bulunamadı`
-      component.ogsPlakaNo = data + '-Eşleşme yok'
-      component.ref.detectChanges();
-      return;
-    }
-    component.OgsAracId = arac.AracId;
-    component.OgsAracMatch = `*(${data})-(${arac.PlakaNo})`
-    component.ogsPlakaNo = data + '-' + arac.PlakaNo
 
-    if (component.formData.AracId == null || component.formData.AracId != arac.AracId) {
-      component.plakaChange(arac.AracId);
+    let cleanData = data ? data.trim() : "";
+    let actualPlate = cleanData;
+    let isJson = false;
+    let isPts = false;
+
+    // JSON formatını kontrol et ve plakayı ayıkla
+    if (cleanData.startsWith("{") && cleanData.endsWith("}")) {
+      isJson = true;
+      isPts = true;
+      try {
+        const parsed = JSON.parse(cleanData);
+        if (parsed && parsed.plate) {
+          actualPlate = parsed.plate;
+        }
+      } catch (e) {
+        const match = cleanData.match(/"plate"\s*:\s*"([^"]+)"/);
+        if (match && match[1]) {
+          actualPlate = match[1];
+        }
+      }
+    } else if (cleanData.startsWith("PTS:")) {
+      isPts = true;
+      actualPlate = cleanData.substring(4);
+    } else if (/[a-zA-Z]/.test(cleanData)) {
+      isPts = true;
+    }
+
+    const isTag = !isPts && (cleanData.startsWith("1001") || cleanData.startsWith("4001"));
+
+    const now = Date.now();
+    if (isTag) {
+      lastTagValue = cleanData;
+      lastTagTimeVal = now;
+    }
+    if (isPts) {
+      lastPlateValue = actualPlate;
+      lastPlateTimeVal = now;
+    }
+
+    let arac: any = null;
+
+    if (isPts) {
+      // 1. Durum: Gelen veri PTS verisi (Plaka)
+      const cleanPlateForMatch = actualPlate.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+      arac = component.ddTumPlakalar.filter(x => {
+        if (!x.PlakaNo) return false;
+        const cleanPlaka = x.PlakaNo.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+        return cleanPlaka === cleanPlateForMatch;
+      })[0];
+
+      if (!arac) {
+        // Plaka bulunamadı
+        component.OgsAracMatch = `${actualPlate} (PTS) - Plaka Bulunamadı`;
+        component.ogsPlakaNo = actualPlate + ' (PTS) - Eşleşme yok';
+        component.ref.detectChanges();
+        return;
+      }
+
+      // Plaka bulundu, seçelim
+      component.OgsAracId = arac.AracId;
+
+      // Son 3 saniyede HGS etiketi geldi mi kontrol et (HGS etiketi var mı uyarısı için)
+      const tagActive = (now - lastTagTimeVal) < 3000 && lastTagValue !== "";
+
+      if (tagActive) {
+        component.OgsAracMatch = `${arac.PlakaNo} (PTS)`;
+        component.ogsPlakaNo = arac.PlakaNo + ' (PTS)';
+      } else {
+        component.OgsAracMatch = `${arac.PlakaNo} (PTS) - HGS Etiketi Bulunamadı`;
+        component.ogsPlakaNo = arac.PlakaNo + ' (PTS) - HGS Etiketi Bulunamadı';
+      }
+
+      if (component.formData.AracId == null || component.formData.AracId != arac.AracId) {
+        component.plakaChange(arac.AracId);
+      }
       component.ref.detectChanges();
-      return;
+
+    } else if (isTag) {
+      // 2. Durum: Gelen veri HGS Etiket verisi
+
+      // Eğer son 5 saniyede PTS'den bir plaka başarıyla yakalandıysa ve seçildiyse:
+      const plateActive = (now - lastPlateTimeVal) < 5000 && lastPlateValue !== "";
+      let activePlateArac: any = null;
+
+      if (plateActive) {
+        const cleanPlateForMatch = lastPlateValue.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+        activePlateArac = component.ddTumPlakalar.filter(x => {
+          if (!x.PlakaNo) return false;
+          const cleanPlaka = x.PlakaNo.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+          return cleanPlaka === cleanPlateForMatch;
+        })[0];
+      }
+
+      if (activePlateArac) {
+        // Gelen etiket ne olursa olsun, bir etiket okunduğu için "HGS Etiketi Bulunamadı" uyarısını kaldıralım
+        component.OgsAracMatch = `${activePlateArac.PlakaNo} (PTS)`;
+        component.ogsPlakaNo = activePlateArac.PlakaNo + ' (PTS)';
+        component.ref.detectChanges();
+        // Diğer araç etiketlerini yoksay
+        return;
+      }
+
+      // Eğer son 15 saniyede aktif bir PTS aracı yoksa, normal etiket eşleştirmesini yap
+      arac = component.ddTumPlakalar.filter(x => x.OGSEtiket == cleanData)[0];
+
+      if (!arac) {
+        component.OgsAracMatch = `*(${cleanData})-Plaka Bulunamadı`;
+        component.ogsPlakaNo = cleanData + '-Eşleşme yok';
+        component.ref.detectChanges();
+        return;
+      }
+
+      component.OgsAracId = arac.AracId;
+      component.OgsAracMatch = `*(${cleanData})-(${arac.PlakaNo})`;
+      component.ogsPlakaNo = cleanData + '-' + arac.PlakaNo;
+
+      if (component.formData.AracId == null || component.formData.AracId != arac.AracId) {
+        component.plakaChange(arac.AracId);
+      }
+      component.ref.detectChanges();
     }
   }
 
@@ -1087,7 +1198,6 @@ export class DashboardComponent implements OnInit {
         if (this.barkodTuru != "Kamu Fiş") {
           this.responseToPrint(result.data);
         }
-
         if (this.kantarConfig.cameras && this.kantarConfig.cameras.length > 0) {
           console.log("Kabul belgesi kaydedildi. Kamera kaydi tetikleniyor. Yapilandirilmis Kameralar:", this.kantarConfig.cameras);
           if (this._electronService.ipcRenderer) {
@@ -1095,7 +1205,6 @@ export class DashboardComponent implements OnInit {
               ? (result.data.plakano || result.data.PlakaNo)
               : 'BilinmeyenPlaka';
             const absoluteApiUrl = `${this.url}/kantar/DokumGorsel`;
-
             this._electronService.ipcRenderer.send('capture-cameras', {
               plaka: plaka,
               cameras: this.kantarConfig.cameras,

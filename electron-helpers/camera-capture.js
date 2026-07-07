@@ -83,7 +83,24 @@ class CameraCapture {
       const targetDir = os.tmpdir();
       printToAngular(`Gecici hedef dizin: ${targetDir}`);
 
-      const ffmpegPath = path.join(__dirname, "..", "ffmpeg", "ffmpeg.exe");
+      let ffmpegPath = path.join(__dirname, "..", "ffmpeg", "ffmpeg.exe");
+      if (!fs.existsSync(ffmpegPath)) {
+        const prodPath = path.join(
+          process.resourcesPath,
+          "..",
+          "ffmpeg",
+          "ffmpeg.exe",
+        );
+        if (fs.existsSync(prodPath)) {
+          ffmpegPath = prodPath;
+        } else {
+          const exeDir = path.dirname(process.argv[0]);
+          const exePath = path.join(exeDir, "ffmpeg", "ffmpeg.exe");
+          if (fs.existsSync(exePath)) {
+            ffmpegPath = exePath;
+          }
+        }
+      }
       printToAngular(`ffmpeg.exe yolu: ${ffmpegPath}`);
       if (!fs.existsSync(ffmpegPath)) {
         printToAngular(`HATA: ffmpeg.exe bulunamadı! Yol: ${ffmpegPath}`);

@@ -51,7 +51,7 @@ class AntenTcp {
           AntenTcp.connection = client;
           console.log("Sunucuya baglanildi!");
           printToAngular("Sunucuya baglanildi!");
-        }
+        },
       );
       client.on("data", (data) => {
         onConnData(data);
@@ -82,7 +82,7 @@ class AntenTcp {
       AntenTcp.connection.write("AA010F000094CF");
       mainWindow.webContents.send(
         "successRestart",
-        "Anten Tekrardan Başlatıldı."
+        "Anten Tekrardan Başlatıldı.",
       );
       console.log("Anten başlatma komutu AA010F000094CF");
       printToAngular("Anten başlatma komutu AA010F000094CF");
@@ -97,7 +97,7 @@ class AntenTcp {
     conn.on("data", onConnData);
     conn.on("error", onConnError);
     conn.on("close", () =>
-      console.log("connection closed from " + remoteAddress)
+      console.log("connection closed from " + remoteAddress),
     );
   }
 
@@ -125,6 +125,7 @@ function onConnData(d) {
     if (indexStr != -1) {
       const yeniEtiketmesg = hexString.slice(indexStr, indexStr + 8);
       mainWindow.webContents.send("tcp", yeniEtiketmesg);
+      return;
     } else {
       var eskiEtiketHex = hexString.slice(32, 38);
       var eskiEtiketmsg = parseInt(eskiEtiketHex, 16);
@@ -137,10 +138,26 @@ function onConnData(d) {
         eskiEtiketmsg = parseInt(eskiEtiketHex, 16);
         mainWindow.webContents.send("tcp", eskiEtiketmsg);
         console.log("TCP MESAJI =>", eskiEtiketmsg);
+        return;
       }
       if (String(eskiEtiketmsg).startsWith("1001")) {
         mainWindow.webContents.send("tcp", eskiEtiketmsg);
         console.log("TCP MESAJI =>", eskiEtiketmsg);
+        return;
+      }
+    }
+
+    const rawString = d.toString().trim();
+    if (rawString.startsWith("{") && rawString.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(rawString);
+        if (parsed && parsed.plate) {
+          mainWindow.webContents.send("tcp", parsed.plate);
+          console.log("TCP MESAJI (PTS) =>", parsed.plate);
+          return;
+        }
+      } catch (e) {
+        console.error("PTS JSON parse hatası:", e);
       }
     }
   } else if (AppConfig.reader) {
