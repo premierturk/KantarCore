@@ -1,0 +1,32 @@
+camera:
+  url: rtsp://premierturk:premierturk@10.210.210.88:554/stream1
+  transport: tcp
+roi:
+- 0.4131578947368421
+- 0.19626168224299065
+- 0.9618421052631579
+- 0.7850467289719626
+consensus:
+  window_seconds: 6
+  sample_fps: 6.0
+  min_agreement: 3
+  cooldown_seconds: 3.0
+detection:
+  detector_model: yolo-v9-t-640-license-plate-end2end
+  ocr_model: cct-s-v2-global-model
+  min_confidence: 0.4
+  ocr_min_confidence: 0.9
+plate:
+  country: TR
+  tr_format_filter: true
+output:
+  type: tcp_client
+  host: 10.210.210.114
+  port: 8080
+  format: json
+logging:
+  evidence_dir: data/evidence
+  level: INFO
+  max_evidence_files: 1000
+  save_evidence: false
+  debug_min_conf: 0.5

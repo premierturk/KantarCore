@@ -1074,8 +1074,8 @@ export class DashboardComponent implements OnInit {
     } else if (isTag) {
       // 2. Durum: Gelen veri HGS Etiket verisi
 
-      // Eğer son 5 saniyede PTS'den bir plaka başarıyla yakalandıysa ve seçildiyse:
-      const plateActive = (now - lastPlateTimeVal) < 5000 && lastPlateValue !== "";
+      // Eğer son 15 saniyede PTS'den bir plaka başarıyla yakalandıysa ve seçildiyse:
+      const plateActive = (now - lastPlateTimeVal) < 15000 && lastPlateValue !== "";
       let activePlateArac: any = null;
 
       if (plateActive) {

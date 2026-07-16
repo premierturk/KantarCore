@@ -13,6 +13,38 @@ namespace RFIDEPCReader
 {
   internal class Program
   {
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GetStdHandle(int nStdHandle);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+
+    private const int STD_INPUT_HANDLE = -10;
+    private const uint ENABLE_QUICK_EDIT_MODE = 0x0040;
+    private const uint ENABLE_EXTENDED_FLAGS = 0x0080;
+
+    private static void DisableQuickEdit()
+    {
+      try
+      {
+        IntPtr conIn = GetStdHandle(STD_INPUT_HANDLE);
+        uint mode;
+        if (GetConsoleMode(conIn, out mode))
+        {
+          mode &= ~ENABLE_QUICK_EDIT_MODE;
+          mode |= ENABLE_EXTENDED_FLAGS;
+          SetConsoleMode(conIn, mode);
+        }
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"[BİLGİ] QuickEdit devre dışı bırakılamadı: {ex.Message}");
+      }
+    }
+
     private static int baudRate = 9600;
     private static object clientLock = new object();
 
@@ -34,6 +66,11 @@ namespace RFIDEPCReader
         while (true)
         {
           TcpClient client = tcpListener.AcceptTcpClient();
+
+          // Zaman aşımları ve performans ayarları
+          client.SendTimeout = 3000;    // 3 saniye yazma zaman aşımı
+          client.ReceiveTimeout = 5000; // 5 saniye okuma zaman aşımı
+          client.NoDelay = true;        // Nagle algoritmasını devre dışı bırak, veriyi bekletmeden gönder
 
           lock (clientLock)
           {
@@ -226,6 +263,9 @@ namespace RFIDEPCReader
 
     private static void Main(string[] args)
     {
+      // CMD ekranına tıklanınca donmayı engellemek için QuickEdit modunu kapat
+      DisableQuickEdit();
+
       Console.Title = "RFID EPC TCP Server";
       Console.WriteLine("=== RFID EPC TCP Server ===\n");
 
@@ -428,34 +468,12 @@ namespace RFIDEPCReader
       }
     }
 
-    private static void ProcessBuffer()
+    private static List<byte[]> ProcessBuffer()
     {
+      List<byte[]> packets = new List<byte[]>();
+
       while (true)
       {
-
-        try
-        {
-          var bytes = dataBuffer.GetRange(0, dataBuffer.Count).ToArray();
-          var text = Encoding.UTF8.GetString(bytes);
-          //if (text.Contains("OPENED") || text.Contains("CLOSED"))
-          //{
-
-          //BroadcastToAllClients(text);
-
-
-          Console.WriteLine(text.Split(' ')[1]);
-          // dataBuffer.Clear();
-          //}
-
-
-        }
-        catch (Exception)
-        {
-
-
-        }
-
-
         int startIndex = dataBuffer.IndexOf(0x00);
         if (startIndex == -1)
         {
@@ -479,11 +497,7 @@ namespace RFIDEPCReader
         byte[] packet = dataBuffer.GetRange(0, packetLength).ToArray();
         dataBuffer.RemoveRange(0, packetLength);
 
-        AnalizeEPCData(packet);
-
-
-
-
+        packets.Add(packet);
       }
 
       if (dataBuffer.Count > 1000)
@@ -491,10 +505,14 @@ namespace RFIDEPCReader
         Console.WriteLine("\n[UYARI] Buffer çok büyüdü, temizleniyor...\n");
         dataBuffer.Clear();
       }
+
+      return packets;
     }
 
     private static void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
     {
+      List<byte[]> packetsToProcess = null;
+
       lock (serialPortLock)
       {
         try
@@ -514,13 +532,29 @@ namespace RFIDEPCReader
             lock (lockObject)
             {
               dataBuffer.AddRange(buffer);
-              ProcessBuffer();
+              packetsToProcess = ProcessBuffer();
             }
           }
         }
         catch (Exception ex)
         {
           Console.WriteLine($"Okuma Hatası: {ex.Message}");
+        }
+      }
+
+      // Kilitler serbest kaldıktan sonra EPC paketlerini işle ve yayına gönder
+      if (packetsToProcess != null && packetsToProcess.Count > 0)
+      {
+        foreach (var packet in packetsToProcess)
+        {
+          try
+          {
+            AnalizeEPCData(packet);
+          }
+          catch (Exception ex)
+          {
+            Console.WriteLine($"[HATA] Paket analiz hatası: {ex.Message}");
+          }
         }
       }
     }

@@ -53,21 +53,20 @@ class KantarPort {
     } else if (AppConfig.kantarMarka == "ideKantar") {
       if (!msg) return 0;
 
-  let num = '';
-  
-  for (let i = 0; i < msg.length; i++) {
-    const c = msg[i];
+      let num = "";
 
-    if ((c >= '0' && c <= '9') || c === '-') {
-      num += c;
-    } else if (num.length > 0) {
-      break;
-    }
-  }
+      for (let i = 0; i < msg.length; i++) {
+        const c = msg[i];
 
-  return num ? parseInt(num, 10) : 0;
-    
-} else if (AppConfig.kantarMarka == "tamTarti") {
+        if ((c >= "0" && c <= "9") || c === "-") {
+          num += c;
+        } else if (num.length > 0) {
+          break;
+        }
+      }
+
+      return num ? parseInt(num, 10) : 0;
+    } else if (AppConfig.kantarMarka == "tamTarti") {
       var str = msg.split(" ")[0];
       var data = str.substring(str.length - 6);
       return data;
@@ -95,6 +94,30 @@ class KantarPort {
         .replaceAll("-", "")
         .replaceAll("kg", "")
         .replaceAll(" ", "");
+    } else if (AppConfig.kantarMarka == "kirazpinarKantar") {
+      try {
+        if (!msg) return 0;
+        let num = 0;
+        let hasNum = false;
+        let sign = 1;
+        for (let i = 0; i < msg.length; i++) {
+          const code = msg.charCodeAt(i);
+          if (code >= 48 && code <= 57) {
+            // '0' ile '9' arası sayılar
+            num = num * 10 + (code - 48);
+            hasNum = true;
+          } else if (code === 45 && !hasNum) {
+            // '-' eksi işareti
+            sign = -1;
+          } else if (hasNum) {
+            break;
+          }
+        }
+        return hasNum ? num * sign : 0;
+      } catch (error) {
+        console.log("Kantar verisi parse edilemedi");
+        return 0;
+      }
     } else {
       return msg;
     }
@@ -113,7 +136,6 @@ class KantarPort {
   }
 
   static onData(data) {
-
     currMessage += Buffer.from(data).toString();
 
     if (
@@ -137,7 +159,7 @@ class KantarPort {
       currMessage = "";
       return;
     }
-   
+
     currMessage = KantarPort.dataParser(currMessage); //parse kantar data
 
     messages.push(currMessage);
