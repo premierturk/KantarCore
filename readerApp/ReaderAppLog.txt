@@ -1,0 +1,11 @@
+[HIDE] Time: 7/17/2026 4:08:00 PM, hWnd: 8981638
+[HIDE] Time: 7/17/2026 4:08:50 PM, hWnd: 6162280
+[SHOW] Time: 7/17/2026 4:08:56 PM, hWnd: 6162280
+[SHOW RESULTS] r1: False, r2: True, r3: True
+[HIDE] Time: 7/17/2026 4:09:50 PM, hWnd: 5835942
+[SHOW] Time: 7/17/2026 4:10:09 PM, hWnd: 5835942
+[SHOW RESULTS] r1: False, r2: True, r3: True
+[HIDE] Time: 7/17/2026 4:10:50 PM, hWnd: 6818718
+[SHOW] Time: 7/17/2026 4:44:55 PM, hWnd: 6818718
+[SHOW RESULTS] r1: False, r2: True, r3: True
+[HIDE] Time: 7/17/2026 4:46:50 PM, hWnd: 16190570

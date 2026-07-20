@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading;
 using System.Diagnostics;
 using System.Web.Script.Serialization;
+using System.Windows.Forms;
+using System.Drawing;
 
 namespace RFIDEPCReader
 {
@@ -22,9 +24,134 @@ namespace RFIDEPCReader
     [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
 
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    private static extern IntPtr GetConsoleWindow();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
     private const int STD_INPUT_HANDLE = -10;
     private const uint ENABLE_QUICK_EDIT_MODE = 0x0040;
     private const uint ENABLE_EXTENDED_FLAGS = 0x0080;
+
+    private const int SW_HIDE = 0;
+    private const int SW_SHOW = 5;
+
+    private static NotifyIcon trayIcon;
+    private static bool isConsoleVisible = false;
+
+    private static void HideConsole()
+    {
+      try
+      {
+        string logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ReaderAppLog.txt");
+        IntPtr hWnd = GetConsoleWindow();
+        System.IO.File.AppendAllText(logPath, $"[HIDE] Time: {DateTime.Now}, hWnd: {hWnd}\n");
+
+        if (hWnd != IntPtr.Zero)
+        {
+          ShowWindow(hWnd, SW_HIDE);
+          isConsoleVisible = false;
+        }
+      }
+      catch (Exception ex)
+      {
+        try
+        {
+          string logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ReaderAppLog.txt");
+          System.IO.File.AppendAllText(logPath, $"[HIDE ERROR] {ex.Message}\n");
+        }
+        catch {}
+      }
+    }
+
+    private static void ShowConsole()
+    {
+      try
+      {
+        string logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ReaderAppLog.txt");
+        IntPtr hWnd = GetConsoleWindow();
+        System.IO.File.AppendAllText(logPath, $"[SHOW] Time: {DateTime.Now}, hWnd: {hWnd}\n");
+
+        if (hWnd != IntPtr.Zero)
+        {
+          bool r1 = ShowWindow(hWnd, SW_SHOW);
+          bool r2 = ShowWindow(hWnd, 9); // SW_RESTORE
+          bool r3 = SetForegroundWindow(hWnd);
+          System.IO.File.AppendAllText(logPath, $"[SHOW RESULTS] r1: {r1}, r2: {r2}, r3: {r3}\n");
+          isConsoleVisible = true;
+        }
+        else
+        {
+          System.IO.File.AppendAllText(logPath, $"[SHOW] hWnd was zero! Cannot show.\n");
+        }
+      }
+      catch (Exception ex)
+      {
+        try
+        {
+          string logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ReaderAppLog.txt");
+          System.IO.File.AppendAllText(logPath, $"[SHOW ERROR] {ex.Message}\n");
+        }
+        catch {}
+      }
+    }
+
+    private static void ToggleConsole()
+    {
+      if (isConsoleVisible)
+        HideConsole();
+      else
+        ShowConsole();
+    }
+
+    private static void ExitApplication()
+    {
+      try
+      {
+        if (trayIcon != null)
+        {
+          trayIcon.Visible = false;
+          trayIcon.Dispose();
+        }
+        Application.ExitThread();
+      }
+      catch {}
+    }
+
+    private static void StartTrayIcon()
+    {
+      Thread trayThread = new Thread(() =>
+      {
+        try
+        {
+          trayIcon = new NotifyIcon();
+          trayIcon.Text = $"RFID EPC Reader ({comPortName})";
+          trayIcon.Icon = SystemIcons.Application;
+
+          ContextMenu trayMenu = new ContextMenu();
+          trayMenu.MenuItems.Add("Göster", (s, e) => ShowConsole());
+          trayMenu.MenuItems.Add("Gizle", (s, e) => HideConsole());
+          trayMenu.MenuItems.Add("-");
+          trayMenu.MenuItems.Add("Çıkış", (s, e) => ExitApplication());
+
+          trayIcon.ContextMenu = trayMenu;
+          trayIcon.DoubleClick += (s, e) => ToggleConsole();
+          trayIcon.Visible = true;
+
+          Application.Run();
+        }
+        catch {}
+      });
+
+      trayThread.SetApartmentState(ApartmentState.STA);
+      trayThread.IsBackground = false;
+      trayThread.Start();
+      trayThread.Join();
+    }
 
     private static void DisableQuickEdit()
     {
@@ -263,6 +390,9 @@ namespace RFIDEPCReader
 
     private static void Main(string[] args)
     {
+      // Başlangıçta konsol ekranını gizle
+      HideConsole();
+
       // CMD ekranına tıklanınca donmayı engellemek için QuickEdit modunu kapat
       DisableQuickEdit();
 
@@ -274,6 +404,8 @@ namespace RFIDEPCReader
       {
         Console.WriteLine("Kullanım: RFIDEPCReader.exe <COM_PORT> <TCP_PORT>");
         Console.WriteLine("Örnek: RFIDEPCReader.exe COM2 5000");
+        ShowConsole();
+        return;
       }
 
       comPortName = args[0];
@@ -312,14 +444,11 @@ namespace RFIDEPCReader
 
           Console.WriteLine("\n" + new string('-', 60));
           Console.WriteLine("EPC verileri bekleniyor...");
-          Console.WriteLine("Çıkmak için 'Q' tuşuna basın");
+          Console.WriteLine("Sistem tepsisi (saatin yanı) aktif.");
           Console.WriteLine(new string('-', 60) + "\n");
 
-          // Kullanıcı çıkış yapana kadar bekle
-          while (Console.ReadKey(true).Key != ConsoleKey.Q)
-          {
-            Thread.Sleep(100);
-          }
+          // Sistem tepsisi simgesi oluştur ve mesaj döngüsünü başlat (kapatılana kadar bloke eder)
+          StartTrayIcon();
         }
         catch (Exception ex)
         {

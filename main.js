@@ -68,6 +68,16 @@ app.on("ready", onReady);
 
 app.on("window-all-closed", () => app.quit());
 
+app.on("will-quit", () => {
+  const { exec } = require("child_process");
+  try {
+    exec("taskkill /f /im ReaderAppSerialPort.exe");
+    exec("taskkill /f /im ReaderApp.exe");
+  } catch (e) {
+    console.error("ReaderApp temizlenemedi:", e);
+  }
+});
+
 app.on("activate", () => mainWindow ?? onReady());
 
 //ipcMain
@@ -113,19 +123,23 @@ autoUpdater.on("update-downloaded", () => {
 
 autoUpdater.on("error", (message) => printToAngular(message));
 
+let readerChild = null;
+
 function readerApp() {
-  const appPath = AppFiles.readerExePath; //path.join(__dirname, "readerApp");
-  const appSerialPath = AppFiles.readerSerialExePath;
+  if (readerChild && !readerChild.killed) {
+    console.log("ReaderApp zaten calisiyor.");
+    return;
+  }
+
+  const appPath = path.resolve(__dirname, AppFiles.readerExePath);
+  const appSerialPath = path.resolve(__dirname, AppFiles.readerSerialExePath);
   let command = "";
-  // const executable = "readerapp.exe";
-  // const fullPath = path.join(appPath, executable);
 
   if (AppConfig.antenseriport) {
     const params = [`${AppConfig.antencomport}`, "8080"];
     command = `start /min "ReaderAppSerialPort" "${appSerialPath}" ${params.join(
       " "
     )}`;
-
     printToAngular("ReaderApp SerialPort Baslatildi");
   } else {
     const params = [`${AppConfig.antenip}:7896`, `${AppConfig.antenport}`];
@@ -133,14 +147,15 @@ function readerApp() {
     printToAngular("ReaderApp TCP Baslatildi");
   }
 
-  const child = spawn("cmd.exe", ["/c", command], { shell: true });
+  readerChild = spawn("cmd.exe", ["/c", command], { shell: true });
 
-  child.stderr.on("data", (data) => {
+  readerChild.stderr.on("data", (data) => {
     console.error(`Komut calistirma hatasi: ${data}`);
   });
 
-  child.on("close", (code) => {
+  readerChild.on("close", (code) => {
     console.log(`Komut ${code} koduyla tamamlandi.`);
+    readerChild = null;
   });
 
   console.log(`ReaderApp uygulamasi baslatildi.`);
