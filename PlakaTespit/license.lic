@@ -1,0 +1,10 @@
+{
+  "payload": {
+    "product": "PlakaTespit",
+    "machine_id": "1E16D-A23B9-0D2D9-3FE63",
+    "customer": "Musteri - Kantar PC",
+    "issued": "2026-07-24",
+    "expires": null
+  },
+  "sig": "hztrKQus9fXu7J8KvL/ksiWn1PPSrEme4+q3Gqytz0XBXwH6ky1YEi2qt1mBjzZsqyK1fVt8eSPjHrxZMrfVAg=="
+}

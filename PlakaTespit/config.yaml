@@ -2,14 +2,14 @@ camera:
   url: rtsp://premierturk:premierturk@10.210.210.88:554/stream1
   transport: tcp
 roi:
-- 0.4131578947368421
-- 0.19626168224299065
-- 0.9618421052631579
-- 0.7850467289719626
+- 0.2631578947368421
+- 0.26401869158878505
+- 0.8328947368421052
+- 0.7546728971962616
 consensus:
   window_seconds: 6
   sample_fps: 6.0
-  min_agreement: 3
+  min_agreement: 2
   cooldown_seconds: 3.0
 detection:
   detector_model: yolo-v9-t-640-license-plate-end2end
@@ -24,6 +24,7 @@ output:
   host: 10.210.210.114
   port: 8080
   format: json
+  reconnect_each: true
 logging:
   evidence_dir: data/evidence
   level: INFO

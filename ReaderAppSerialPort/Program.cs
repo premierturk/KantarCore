@@ -196,7 +196,7 @@ namespace RFIDEPCReader
 
           // Zaman aşımları ve performans ayarları
           client.SendTimeout = 3000;    // 3 saniye yazma zaman aşımı
-          client.ReceiveTimeout = 5000; // 5 saniye okuma zaman aşımı
+          client.ReceiveTimeout = 0;    // Okuma zaman aşımı yok (KantarCore pasif alıcı olduğu için bağlantı kopmamalı)
           client.NoDelay = true;        // Nagle algoritmasını devre dışı bırak, veriyi bekletmeden gönder
 
           lock (clientLock)
@@ -242,16 +242,14 @@ namespace RFIDEPCReader
         epcNumber = decValue.ToString();
       }
 
-      if (!string.IsNullOrEmpty(epcNumber))
+      // Doğrulama: Tam 8 hane, sadece rakam, ve 4001/1001 ile başlamalı
+      if (!string.IsNullOrEmpty(epcNumber)
+          && epcNumber.Length == 8
+          && epcNumber.All(char.IsDigit)
+          && (epcNumber.StartsWith("4001") || epcNumber.StartsWith("1001")))
       {
-        // Console'a her zaman yaz
         Console.WriteLine(epcNumber);
-
-        // Sadece 4001 veya 1001 ile başlayan verileri TCP'ye gönder
-        if (epcNumber.StartsWith("4001") || epcNumber.StartsWith("1001"))
-        {
-          BroadcastToAllClients(epcNumber);
-        }
+        BroadcastToAllClients(epcNumber);
       }
     }
 
@@ -268,7 +266,7 @@ namespace RFIDEPCReader
             if (client.Connected)
             {
               NetworkStream stream = client.GetStream();
-              byte[] data = Encoding.UTF8.GetBytes(message);
+              byte[] data = Encoding.UTF8.GetBytes(message + "\n");
               stream.Write(data, 0, data.Length);
             }
             else
@@ -299,7 +297,8 @@ namespace RFIDEPCReader
       try
       {
         NetworkStream stream = client.GetStream();
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[4096];
+        StringBuilder jsonBuffer = new StringBuilder();
 
         while (client.Connected)
         {
@@ -308,71 +307,109 @@ namespace RFIDEPCReader
             break;
 
           string receivedData = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-          Console.WriteLine($"[TCP] {clientInfo} istemcisinden gelen veri: {receivedData}");
+          Console.WriteLine($"{receivedData}");
 
           try
           {
+            // Gelen veriyi JSON buffer'a ekle
+            jsonBuffer.Append(receivedData);
+            string accumulated = jsonBuffer.ToString().Trim();
 
-            // PTS JSON VERİSİ
-            /*
-             * 
-             
-             {"plate":"34OTO34","ts":"2026-06-29T15:33:03","evidence":"data/evidence/34OTO34_20260629_153303.jpg"}
-
-             */
-            string ptsData = receivedData.Trim();
-            if (ptsData.StartsWith("{") && ptsData.EndsWith("}"))
+            // JSON verisi içeriyor mu kontrol et
+            if (accumulated.Contains("{"))
             {
-              var pts = new JavaScriptSerializer().Deserialize<PtsPayload>(ptsData);
-              if (pts != null && !string.IsNullOrEmpty(pts.plate))
+              // JSON mesajlarını tek tek çıkar ve işle
+              while (true)
               {
-                Console.WriteLine($"[PTS] {pts.plate}");
-                BroadcastToAllClients(ptsData);
+                int jsonStart = accumulated.IndexOf('{');
+                if (jsonStart == -1)
+                  break;
+
+                // JSON başlangıcından önce hex veri varsa onu işle
+                if (jsonStart > 0)
+                {
+                  string preData = accumulated.Substring(0, jsonStart).Trim();
+                  if (!string.IsNullOrEmpty(preData))
+                  {
+                    ProcessHexData(preData);
+                  }
+                }
+
+                // Eşleşen kapanış süslü parantezini bul
+                int braceCount = 0;
+                int jsonEnd = -1;
+                for (int i = jsonStart; i < accumulated.Length; i++)
+                {
+                  if (accumulated[i] == '{') braceCount++;
+                  else if (accumulated[i] == '}') braceCount--;
+
+                  if (braceCount == 0)
+                  {
+                    jsonEnd = i;
+                    break;
+                  }
+                }
+
+                if (jsonEnd == -1)
+                {
+                  // JSON henüz tamamlanmadı, sonraki okumayı bekle
+                  // Sadece JSON başlangıcından itibaren tut
+                  jsonBuffer.Clear();
+                  jsonBuffer.Append(accumulated.Substring(jsonStart));
+                  break;
+                }
+
+                // Tam JSON mesajını çıkar
+                string jsonMessage = accumulated.Substring(jsonStart, jsonEnd - jsonStart + 1);
+                accumulated = accumulated.Substring(jsonEnd + 1).Trim();
+
+                // PTS JSON VERİSİ
+                /*
+                 * {"plate":"34OTO34","ts":"2026-06-29T15:33:03","evidence":"data/evidence/34OTO34_20260629_153303.jpg"}
+                 */
+                try
+                {
+                  var pts = new JavaScriptSerializer().Deserialize<PtsPayload>(jsonMessage);
+                  if (pts != null && !string.IsNullOrEmpty(pts.plate))
+                  {
+                    Console.WriteLine($"[PTS] {pts.plate}");
+                    BroadcastToAllClients(jsonMessage);
+                  }
+                }
+                catch (Exception ex)
+                {
+                  Console.WriteLine($"[UYARI] JSON parse hatası: {ex.Message}");
+                }
               }
-              continue;
+
+              // Kalan veriyi buffer'da tut (tamamlanmamış JSON veya hex veri)
+              if (!accumulated.Contains("{"))
+              {
+                jsonBuffer.Clear();
+                if (!string.IsNullOrEmpty(accumulated))
+                {
+                  // Kalan hex veri varsa işle
+                  ProcessHexData(accumulated);
+                }
+              }
             }
-            
-
-
-
-
-            // HGS ANTEN VERİSİ
-
-
-            // Gelen verideki boşluk ve satır atlamaları temizle
-            string hexStr = receivedData.Trim().Replace(" ", "").Replace("\r", "").Replace("\n", "");
-
-            if (!string.IsNullOrEmpty(hexStr))
+            else
             {
-              // Uzunluk tek ise başa 0 ekle ki byte çevriminde hata olmasın
-              if (hexStr.Length % 2 != 0)
-                hexStr = "0" + hexStr;
+              // JSON yok, HGS hex verisi olarak işle
+              jsonBuffer.Clear();
+              ProcessHexData(accumulated);
+            }
 
-              // Hex stringi byte dizisine çevir
-              byte[] hexBytes = new byte[hexStr.Length / 2];
-              for (int i = 0; i < hexBytes.Length; i++)
-              {
-                hexBytes[i] = Convert.ToByte(hexStr.Substring(i * 2, 2), 16);
-              }
-
-              // Seri porta yaz
-              lock (serialPortLock)
-              {
-                if (serialPort != null && serialPort.IsOpen)
-                {
-                  serialPort.Write(hexBytes, 0, hexBytes.Length);
-                  Console.WriteLine($"[SERI PORT] Veri yazıldı: {hexStr}");
-                }
-                else
-                {
-                  Console.WriteLine($"[SERI PORT] Port açık değil, veri yazılamadı.");
-                }
-              }
+            // Buffer çok büyürse temizle (koruma)
+            if (jsonBuffer.Length > 10000)
+            {
+              Console.WriteLine("[UYARI] TCP JSON buffer çok büyüdü, temizleniyor...");
+              jsonBuffer.Clear();
             }
           }
           catch (Exception ex)
           {
-            Console.WriteLine($"[HATA] Seri porta yazma başarısız: {ex.Message}");
+            Console.WriteLine($"[HATA] Veri işleme hatası: {ex.Message}");
           }
         }
       }
@@ -385,6 +422,53 @@ namespace RFIDEPCReader
           Console.WriteLine($"[TCP] Bağlantı kesildi (Kalan: {connectedClients.Count})");
         }
         try { client.Close(); } catch { }
+      }
+    }
+
+    private static bool IsValidHex(string str)
+    {
+      return str.All(c => (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'));
+    }
+
+    private static void ProcessHexData(string rawData)
+    {
+      // HGS ANTEN VERİSİ
+      // Gelen verideki boşluk ve satır atlamaları temizle
+      string hexStr = rawData.Trim().Replace(" ", "").Replace("\r", "").Replace("\n", "");
+
+      if (string.IsNullOrEmpty(hexStr))
+        return;
+
+      // Geçerli hex karakteri kontrolü — geçersizse seri porta yazma
+      if (!IsValidHex(hexStr))
+      {
+        Console.WriteLine($"[UYARI] Geçersiz hex veri atlandı: {hexStr}");
+        return;
+      }
+
+      // Uzunluk tek ise başa 0 ekle ki byte çevriminde hata olmasın
+      if (hexStr.Length % 2 != 0)
+        hexStr = "0" + hexStr;
+
+      // Hex stringi byte dizisine çevir
+      byte[] hexBytes = new byte[hexStr.Length / 2];
+      for (int i = 0; i < hexBytes.Length; i++)
+      {
+        hexBytes[i] = Convert.ToByte(hexStr.Substring(i * 2, 2), 16);
+      }
+
+      // Seri porta yaz
+      lock (serialPortLock)
+      {
+        if (serialPort != null && serialPort.IsOpen)
+        {
+          serialPort.Write(hexBytes, 0, hexBytes.Length);
+          Console.WriteLine($"[SERI PORT] Veri yazıldı: {hexStr}");
+        }
+        else
+        {
+          Console.WriteLine($"[SERI PORT] Port açık değil, veri yazılamadı.");
+        }
       }
     }
 

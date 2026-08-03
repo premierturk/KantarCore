@@ -1,0 +1,10 @@
+{
+  "payload": {
+    "product": "PlakaTespit",
+    "machine_id": "C7B4B-BAC84-69192-EDE31",
+    "customer": "Musteri - C7B4B-BAC84-69192-EDE31",
+    "issued": "2026-07-31",
+    "expires": null
+  },
+  "sig": "x7+jaE+zAnJqqPa6qvnGfx5L7A90OXfSNOYpWVCKtMum95w+NWe8js5bALD1du5WOMxadrEZ9m4ZBPsDuXrJCw=="
+}

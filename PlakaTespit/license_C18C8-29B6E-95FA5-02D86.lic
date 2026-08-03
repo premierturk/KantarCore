@@ -1,0 +1,10 @@
+{
+  "payload": {
+    "product": "PlakaTespit",
+    "machine_id": "C18C8-29B6E-95FA5-02D86",
+    "customer": "Musteri - C18C8-29B6E-95FA5-02D86",
+    "issued": "2026-07-31",
+    "expires": null
+  },
+  "sig": "mlBsPNhZ57qEb7H3wIBw0nBIDZmE5mpj/TiP8ti3vrSLtYKQl6ZwvEl3b7Yp9Vg/NVp0mjWsa3YaTAM4/ZEZDQ=="
+}

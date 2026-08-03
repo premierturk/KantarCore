@@ -51,6 +51,10 @@ function onReady() {
     AntenTcp.createServer();
   }
 
+  // if (AppConfig.pts) {
+  //   plakaTespitApp();
+  // }
+
   if (AppConfig.reader || AppConfig.antenseriport) {
     readerApp();
 
@@ -73,8 +77,9 @@ app.on("will-quit", () => {
   try {
     exec("taskkill /f /im ReaderAppSerialPort.exe");
     exec("taskkill /f /im ReaderApp.exe");
+    // exec("taskkill /f /im PlakaTespit.exe");
   } catch (e) {
-    console.error("ReaderApp temizlenemedi:", e);
+    console.error("ReaderApp veya PlakaTespit temizlenemedi:", e);
   }
 });
 
@@ -131,14 +136,14 @@ function readerApp() {
     return;
   }
 
-  const appPath = path.resolve(__dirname, AppFiles.readerExePath);
-  const appSerialPath = path.resolve(__dirname, AppFiles.readerSerialExePath);
+  const appPath = AppFiles.getReaderExePath();
+  const appSerialPath = AppFiles.getReaderSerialExePath();
   let command = "";
 
   if (AppConfig.antenseriport) {
     const params = [`${AppConfig.antencomport}`, "8080"];
     command = `start /min "ReaderAppSerialPort" "${appSerialPath}" ${params.join(
-      " "
+      " ",
     )}`;
     printToAngular("ReaderApp SerialPort Baslatildi");
   } else {
@@ -159,4 +164,35 @@ function readerApp() {
   });
 
   console.log(`ReaderApp uygulamasi baslatildi.`);
+}
+
+let ptsChild = null;
+
+function plakaTespitApp() {
+  if (ptsChild && !ptsChild.killed) {
+    console.log("PlakaTespit zaten calisiyor.");
+    return;
+  }
+
+  const ptsPath = AppFiles.getPtsExePath();
+
+  if (AppConfig.pts) {
+    printToAngular("PlakaTespit Başlatıldı");
+
+    const ptsDir = path.dirname(ptsPath);
+    ptsChild = spawn(ptsPath, [], {
+      cwd: ptsDir,
+    });
+
+    ptsChild.stderr.on("data", (data) => {
+      console.error(`PlakaTespit hatasi: ${data}`);
+    });
+
+    ptsChild.on("close", (code) => {
+      console.log(`PlakaTespit ${code} koduyla tamamlandi.`);
+      ptsChild = null;
+    });
+
+    console.log(`PlakaTespit uygulaması başlatıldı.`);
+  }
 }

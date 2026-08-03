@@ -1,0 +1,10 @@
+{
+  "payload": {
+    "product": "PlakaTespit",
+    "machine_id": "A6A68-70DB0-4B600-638E8",
+    "customer": "Musteri - Windows 2",
+    "issued": "2026-07-21",
+    "expires": null
+  },
+  "sig": "A5EF3yPHtMmK5nm5KSsU88eQxf/Q8VBpiGTd9Cc5c3sOI1iAp79GOg9R5zcJ2fMDSp6KmWKEOSUXO80yT0TuCA=="
+}

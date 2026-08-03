@@ -83,6 +83,24 @@ class KantarPort {
         console.log("Kantar verisi int'e çevrilemedi");
         return 0;
       }
+    } else if (AppConfig.kantarMarka == "testKantar") {
+      try {
+        // String içindeki tüm sayı bloklarını bul (harfler, gizli semboller ve boşluklar ne olursa olsun)
+        const matches = msg.match(/\d+/g);
+        if (!matches) return 0;
+
+        // 0'dan büyük ilk geçerli tonaj değerini dön (Örn: "úqp0 3740 0" -> 3740)
+        for (let i = 0; i < matches.length; i++) {
+          const val = parseInt(matches[i], 10);
+          if (val > 0) {
+            return val;
+          }
+        }
+        return 0;
+      } catch (error) {
+        console.log("Kantar verisi int'e çevrilemedi");
+        return 0;
+      }
     } else if (AppConfig.kantarMarka == "weiloKantar") {
       return msg
         .replaceAll("US", "")
@@ -136,9 +154,13 @@ class KantarPort {
   }
 
   static onData(data) {
+    console.log("Tonaj : " + data);
+    printToAngular("Tonaj : " + data);
+
     currMessage += Buffer.from(data).toString();
 
     if (
+      AppConfig.kantarMarka != "testKantar" &&
       !currMessage.endsWith("\\r") && //fake data from hercules
       !currMessage.endsWith("\r") && //other kantars
       !currMessage.endsWith("\n") && //net kantar
@@ -159,7 +181,8 @@ class KantarPort {
       currMessage = "";
       return;
     }
-
+    console.log("MESAJ : " + currMessage);
+    printToAngular("MESAJ : " + currMessage);
     currMessage = KantarPort.dataParser(currMessage); //parse kantar data
 
     messages.push(currMessage);
