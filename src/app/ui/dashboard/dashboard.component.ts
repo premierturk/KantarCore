@@ -284,12 +284,12 @@ export class DashboardComponent implements OnInit {
           if (kabulListesiSorgu.success) {
             if ((this.kantarConfig.depolamaAlanId != kabulListesiSorgu.data.DepolamaAlanId) && (kabulListesiSorgu.data.DepolamaAlanId != undefined) && (kabulListesiSorgu.data.DepolamaAlanId != null)) {
               Notiflix.Notify.warning("Bu belge farklı depolama alanı için düzenlenmiştir. Döküm kaydını onaylıyor musunuz?")
-              this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${barkodBelge} belgesi ${this.kantarConfig.kantarAdi} depolama alanına gelmiştir&logType=Kantar Farklı Depolama Alanı&data=null`, {
-                referanceId: 0,
-                logText: `${barkodBelge} belgesi ${this.kantarConfig.kantarAdi} depolama alanına gelmiştir`,
-                logType: 'Kantar Farklı Depolama Alanı Kontrolü',
-                data: null
-              });
+              // this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${barkodBelge} belgesi ${this.kantarConfig.kantarAdi} depolama alanına gelmiştir&logType=Kantar Farklı Depolama Alanı&data=null`, {
+              //   referanceId: 0,
+              //   logText: `${barkodBelge} belgesi ${this.kantarConfig.kantarAdi} depolama alanına gelmiştir`,
+              //   logType: 'Kantar Farklı Depolama Alanı Kontrolü',
+              //   data: null
+              // });
             }
             if (this.user.ilid !== 57) {
               this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kabulListesiSorgu.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
@@ -399,12 +399,12 @@ export class DashboardComponent implements OnInit {
           if (kabulListesiSorgu.success) {
             if ((this.kantarConfig.depolamaAlanId != kabulListesiSorgu.data.DepolamaAlanId) && (kabulListesiSorgu.data.DepolamaAlanId != undefined) && (kabulListesiSorgu.data.DepolamaAlanId != null)) {
               Notiflix.Notify.warning("Bu belge farklı depolama alanı için düzenlenmiştir. Döküm kaydını onaylıyor musunuz?")
-              this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${barkodBelge} belgesi ${this.kantarConfig.kantarAdi} depolama alanına gelmiştir&logType=Kantar Farklı Depolama Alanı&data=null`, {
-                referanceId: 0,
-                logText: `${barkodBelge} belgesi ${this.kantarConfig.kantarAdi} depolama alanına gelmiştir`,
-                logType: 'Kantar Farklı Depolama Alanı Kontrolü',
-                data: null
-              });
+              // this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${barkodBelge} belgesi ${this.kantarConfig.kantarAdi} depolama alanına gelmiştir&logType=Kantar Farklı Depolama Alanı&data=null`, {
+              //   referanceId: 0,
+              //   logText: `${barkodBelge} belgesi ${this.kantarConfig.kantarAdi} depolama alanına gelmiştir`,
+              //   logType: 'Kantar Farklı Depolama Alanı Kontrolü',
+              //   data: null
+              // });
             }
             this.ddPlaka.f_list = this.ddPlaka.list.filter(x => kabulListesiSorgu.data.Araclar.some(a => a.PlakaNo == x.PlakaNo))
             if (this.formData.AracId != null && (kabulListesiSorgu.data.Araclar.filter(x => x.AracId == this.formData.AracId)[0] == null)) {
@@ -653,9 +653,11 @@ export class DashboardComponent implements OnInit {
 
             console.log(`İndirme hızı: ${speedMbps.toFixed(2)} Mbps`);
 
-            this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir&logType=Kantar Speed Test Hesabı&data=null`, {
+            // DEPOLAMA ALANI YAZILACAK LOGA
+            const logMsg = `${this.kantarConfig.kantarAdi} depolama alanında ${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir`;
+            this.ds.postNoMess(`${this.url}/Tanimlar/Log?referanceId=${0}&logText=${logMsg}&logType=Kantar Speed Test Hesabı&data=null`, {
               referanceId: 0,
-              logText: `${speedMbps.toFixed(2)} mbps speed test tespit edilmiştir`,
+              logText: logMsg,
               logType: 'Kantar Speed Test Hesabı',
               data: null
             });
@@ -1014,7 +1016,7 @@ export class DashboardComponent implements OnInit {
           actualPlate = match[1];
         }
       }
-    } else if (cleanData.startsWith("PTS:")) {
+    } else if (cleanData.startsWith("[PTS]")) {
       isPts = true;
       actualPlate = cleanData.substring(4);
     } else if (/[a-zA-Z]/.test(cleanData)) {
@@ -1074,25 +1076,27 @@ export class DashboardComponent implements OnInit {
     } else if (isTag) {
       // 2. Durum: Gelen veri HGS Etiket verisi
 
-      // Eğer son 15 saniyede PTS'den bir plaka başarıyla yakalandıysa ve seçildiyse:
-      const plateActive = (now - lastPlateTimeVal) < 15000 && lastPlateValue !== "";
-      let activePlateArac: any = null;
+      // Eğer son 10 saniyede PTS'den bir plaka okunduysa, onu koru ve HGS'nin ezmesini engelle
+      const plateActive = (now - lastPlateTimeVal) < 10000 && lastPlateValue !== "";
 
       if (plateActive) {
         const cleanPlateForMatch = lastPlateValue.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-        activePlateArac = component.ddTumPlakalar.filter(x => {
+        const activePlateArac = component.ddTumPlakalar.filter(x => {
           if (!x.PlakaNo) return false;
           const cleanPlaka = x.PlakaNo.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
           return cleanPlaka === cleanPlateForMatch;
         })[0];
-      }
 
-      if (activePlateArac) {
-        // Gelen etiket ne olursa olsun, bir etiket okunduğu için "HGS Etiketi Bulunamadı" uyarısını kaldıralım
-        component.OgsAracMatch = `${activePlateArac.PlakaNo} (PTS)`;
-        component.ogsPlakaNo = activePlateArac.PlakaNo + ' (PTS)';
+        if (activePlateArac) {
+          component.OgsAracMatch = `${activePlateArac.PlakaNo} (PTS)`;
+          component.ogsPlakaNo = activePlateArac.PlakaNo + ' (PTS)';
+        } else {
+          // Sistemde kayıtlı olmasa dahi HGS'nin PTS plakasını ezmesini engelle
+          component.OgsAracMatch = `${lastPlateValue} (PTS) - Plaka Bulunamadı`;
+          component.ogsPlakaNo = lastPlateValue + ' (PTS) - Eşleşme yok';
+        }
         component.ref.detectChanges();
-        // Diğer araç etiketlerini yoksay
+        // HGS eşleşmesini atla
         return;
       }
 

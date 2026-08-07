@@ -1,0 +1,10 @@
+{
+  "payload": {
+    "product": "PlakaTespit",
+    "machine_id": "F2D23-2C2B5-D3D74-2A3E5",
+    "customer": "Musteri - F2D23-2C2B5-D3D74-2A3E5",
+    "issued": "2026-08-05",
+    "expires": null
+  },
+  "sig": "ATFLIM5psD13gxaNOhnt8U1qX3K/+XpZmywaaiYYaR0CYqdCki6NsTvztnsgpq40/MnTHAKj+eLs3bBB4s0YAg=="
+}

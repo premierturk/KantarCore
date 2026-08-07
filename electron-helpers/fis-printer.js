@@ -1,7 +1,7 @@
+const { BrowserWindow } = require("electron");
 const AppConfig = require("./app-config");
 const AppFiles = require("./app-files");
 const fs = require("fs");
-var nrc = require("node-run-cmd");
 
 //main.js variables
 var mainWindow;
@@ -18,46 +18,94 @@ class FisPrinter {
     if (!AppConfig.isPrinterOn) return;
     initializeMainJsVariables();
     try {
-      printToAngular("ONPRİNT");
+      printToAngular("ONPRİNT (ELECTRON NATIVE)");
       data = data[0];
 
       printToAngular(data);
 
       var fisTxt = fs.readFileSync(AppFiles.tempTxt, "utf-8");
 
-      for (const [key, value] of Object.entries(data))
+      for (const [key, value] of Object.entries(data)) {
         fisTxt = fisTxt.replaceAll(`{{${key}}}`, value ?? "");
+      }
 
-      fs.copyFile(AppFiles.tempTxt, AppFiles.outTxt, (err, res) => {
-        if (err) {
-          printToAngular(err);
-          return;
+      // output.txt dosyasını yedek/log amacıyla yazmaya devam ediyoruz.
+      try {
+        fs.writeFileSync(AppFiles.outTxt, fisTxt, "utf8");
+      } catch (writeErr) {
+        console.error("output.txt yazma hatası:", writeErr);
+      }
+
+      // HTML içeriğini oluştur (Consolas, Bold, 8pt, 0 Kenar boşluğu)
+      const escapedTxt = fisTxt
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+      const htmlContent = `
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              @page {
+                margin: 0;
+              }
+              body {
+                margin: 0;
+                padding: 0;
+                background-color: white;
+              }
+              pre {
+                font-family: 'Consolas', monospace;
+                font-weight: bold;
+                font-size: 8pt;
+                margin: 0;
+                padding: 0;
+                white-space: pre-wrap;
+                word-break: break-all;
+              }
+            </style>
+          </head>
+          <body>
+            <pre>${escapedTxt}</pre>
+          </body>
+        </html>
+      `;
+
+      // Gizli bir BrowserWindow oluşturarak sayfayı yüklüyoruz
+      let workerWindow = new BrowserWindow({
+        show: false,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true
         }
-
-        fs.writeFile(AppFiles.outTxt, fisTxt, "utf8", function (err) {
-          if (err) return console.log(err);
-        });
-
-        //const command = AppFiles.exePath + `"${AppConfig.printerName}" "${AppFiles.outTxt}"`;
-        printToAngular("Temp yolu: " + AppFiles.tempTxt);
-        console.log("Temp yolu: " + AppFiles.tempTxt);
-        printToAngular("Out yolu: " + AppFiles.outTxt);
-        console.log("Out yolu: " + AppFiles.outTxt);
-        const command = `notepad.exe /p '${AppFiles.outTxt}' '${AppConfig.printerName}'`;
-        console.log(command);
-        printToAngular(command);
-
-        nrc.run(command).then(
-          function (exitCodes) {
-            printToAngular("printed  " + exitCodes);
-          },
-          function (err) {
-            printToAngular("Command failed to run with error: " + err);
-          }
-        );
       });
+
+      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(htmlContent);
+      workerWindow.loadURL(dataUrl);
+
+      workerWindow.webContents.on("did-finish-load", () => {
+        workerWindow.webContents.print({
+          silent: true,
+          deviceName: AppConfig.printerName,
+          margins: { marginType: 'none' } // Kenar boşlukları 0
+        }, (success, errorType) => {
+          if (success) {
+            printToAngular("Yazdırıldı (Electron Native)");
+            console.log("Yazdırıldı (Electron Native)");
+          } else {
+            printToAngular("Yazdırma hatası: " + errorType);
+            console.error("Yazdırma hatası:", errorType);
+          }
+          // Pencereyi yok edip belleği temizliyoruz
+          workerWindow.destroy();
+          workerWindow = null;
+        });
+      });
+
     } catch (error) {
       printToAngular(error);
+      console.error(error);
     }
   }
 }

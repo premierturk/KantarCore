@@ -115,6 +115,8 @@ class AntenTcp {
   }
 }
 
+let tcpReadBuffer = "";
+
 function onConnData(d) {
   const buffer = Buffer.from(d);
   const hexString = buffer.toString("hex");
@@ -161,10 +163,19 @@ function onConnData(d) {
       }
     }
   } else if (AppConfig.reader) {
-    printToAngular("reader : " + d.toString());
+    tcpReadBuffer += d.toString();
+    
+    let newlineIndex;
+    while ((newlineIndex = tcpReadBuffer.indexOf("\n")) !== -1) {
+      const line = tcpReadBuffer.substring(0, newlineIndex).trim();
+      tcpReadBuffer = tcpReadBuffer.substring(newlineIndex + 1);
 
-    mainWindow.webContents.send("tcp", d.toString());
-    console.log("TCP MESAJI =>", d.toString());
+      if (line.length > 0) {
+        printToAngular("reader line : " + line);
+        mainWindow.webContents.send("tcp", line);
+        console.log("TCP MESAJI =>", line);
+      }
+    }
   } else {
     buffer.forEach((element) => {
       arr.push(element);

@@ -25,14 +25,15 @@ function getExecutablePath(relativePath) {
 
 class AppFiles {
   static kantarConfig = path.join(app.getPath("userData"), `kantarConfig.json`);
-  static tempTxt = path.join(
-    process.argv[0].replace("HYBS_Kantar.exe", ""),
-    "fis/template.txt",
-  );
-  static outTxt = path.join(
-    process.argv[0].replace("HYBS_Kantar.exe", ""),
-    "fis/output.txt",
-  );
+  
+  static get tempTxt() {
+    return getExecutablePath("fis/template.txt");
+  }
+
+  static get outTxt() {
+    return getExecutablePath("fis/output.txt");
+  }
+
   static exePath = "fis/PrintFis.exe";
   static readerExePath = "readerApp/ReaderApp.exe";
   static readerSerialExePath = "readerApp/ReaderAppSerialPort.exe";

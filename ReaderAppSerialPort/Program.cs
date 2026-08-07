@@ -199,17 +199,17 @@ namespace RFIDEPCReader
           client.ReceiveTimeout = 0;    // Okuma zaman aşımı yok (KantarCore pasif alıcı olduğu için bağlantı kopmamalı)
           client.NoDelay = true;        // Nagle algoritmasını devre dışı bırak, veriyi bekletmeden gönder
 
+          int count;
           lock (clientLock)
           {
             connectedClients.Add(client);
-            string clientInfo = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
-            Console.WriteLine($"[TCP] Yeni bağlantı: {clientInfo} (Toplam: {connectedClients.Count})");
+            count = connectedClients.Count;
           }
+          string clientInfo = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
+          Console.WriteLine($"[TCP] Yeni bağlantı: {clientInfo} (Toplam: {count})");
 
-          // Client okuma thread'i başlat
-          Thread clientThread = new Thread(() => HandleClient(client));
-          clientThread.IsBackground = true;
-          clientThread.Start();
+          // Client okuma işini ThreadPool'a veriyoruz (Yeni Thread oluşturma maliyetini önler)
+          ThreadPool.QueueUserWorkItem(_ => HandleClient(client));
         }
       }
       catch (Exception ex)
@@ -253,26 +253,28 @@ namespace RFIDEPCReader
       }
     }
 
-    private static void BroadcastToAllClients(string message)
+    private static void BroadcastToAllClients(string message, TcpClient sender = null)
     {
+      List<TcpClient> clientsToBroadcast;
       lock (clientLock)
+      {
+        clientsToBroadcast = connectedClients.Where(c => c != sender && c.Connected).ToList();
+      }
+
+      if (clientsToBroadcast.Count == 0)
+        return;
+
+      ThreadPool.QueueUserWorkItem(_ =>
       {
         List<TcpClient> disconnectedClients = new List<TcpClient>();
 
-        foreach (var client in connectedClients)
+        foreach (var client in clientsToBroadcast)
         {
           try
           {
-            if (client.Connected)
-            {
-              NetworkStream stream = client.GetStream();
-              byte[] data = Encoding.UTF8.GetBytes(message + "\n");
-              stream.Write(data, 0, data.Length);
-            }
-            else
-            {
-              disconnectedClients.Add(client);
-            }
+            NetworkStream stream = client.GetStream();
+            byte[] data = Encoding.UTF8.GetBytes(message + "\n");
+            stream.Write(data, 0, data.Length);
           }
           catch
           {
@@ -280,13 +282,18 @@ namespace RFIDEPCReader
           }
         }
 
-        // Bağlantısı kopan clientları temizle
-        foreach (var client in disconnectedClients)
+        if (disconnectedClients.Count > 0)
         {
-          connectedClients.Remove(client);
-          try { client.Close(); } catch { }
+          lock (clientLock)
+          {
+            foreach (var client in disconnectedClients)
+            {
+              connectedClients.Remove(client);
+              try { client.Close(); } catch { }
+            }
+          }
         }
-      }
+      });
     }
 
     private static void HandleClient(TcpClient client)
@@ -369,16 +376,38 @@ namespace RFIDEPCReader
                  */
                 try
                 {
-                  var pts = new JavaScriptSerializer().Deserialize<PtsPayload>(jsonMessage);
-                  if (pts != null && !string.IsNullOrEmpty(pts.plate))
+                  string extractedPlate = "";
+                  int plateKeyIndex = jsonMessage.IndexOf("\"plate\"");
+                  if (plateKeyIndex != -1)
                   {
-                    Console.WriteLine($"[PTS] {pts.plate}");
-                    BroadcastToAllClients(jsonMessage);
+                    int colonIndex = jsonMessage.IndexOf(":", plateKeyIndex);
+                    if (colonIndex != -1)
+                    {
+                      int startQuote = jsonMessage.IndexOf("\"", colonIndex);
+                      if (startQuote != -1)
+                      {
+                        int endQuote = jsonMessage.IndexOf("\"", startQuote + 1);
+                        if (endQuote != -1)
+                        {
+                          extractedPlate = jsonMessage.Substring(startQuote + 1, endQuote - startQuote - 1).Trim();
+                        }
+                      }
+                    }
+                  }
+
+                  if (!string.IsNullOrEmpty(extractedPlate))
+                  {
+                    Console.WriteLine($"[PTS] {extractedPlate}");
+                    lock (clientLock)
+                    {
+                      connectedClients.Remove(client);
+                    }
+                    BroadcastToAllClients(jsonMessage, client);
                   }
                 }
                 catch (Exception ex)
                 {
-                  Console.WriteLine($"[UYARI] JSON parse hatası: {ex.Message}");
+                  Console.WriteLine($"[UYARI] Plaka ayıklama hatası: {ex.Message}");
                 }
               }
 
@@ -416,11 +445,13 @@ namespace RFIDEPCReader
       catch { }
       finally
       {
+        int count;
         lock (clientLock)
         {
           connectedClients.Remove(client);
-          Console.WriteLine($"[TCP] Bağlantı kesildi (Kalan: {connectedClients.Count})");
+          count = connectedClients.Count;
         }
+        Console.WriteLine($"[TCP] Bağlantı kesildi (Kalan: {count})");
         try { client.Close(); } catch { }
       }
     }
