@@ -21,7 +21,7 @@ plate:
   tr_format_filter: true
 output:
   type: tcp_client
-  host: 10.210.210.114
+  host: 127.0.0.1
   port: 8081
   format: json
   reconnect_each: true

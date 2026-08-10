@@ -43,7 +43,6 @@ async function uploadImage(
       Buffer.from(`--${boundary}--\r\n`),
     ]);
 
-    printToAngular(`Gorsel API'ye yukleniyor: ${uploadUrl}`);
     console.log(`Uploading to ${uploadUrl}...`);
 
     const response = await axios.post(uploadUrl, bodyBuffer, {
@@ -52,16 +51,12 @@ async function uploadImage(
       },
     });
 
-    printToAngular(
-      `Gorsel basariyla yuklendi: ${filename} (Sunucu yaniti: ${JSON.stringify(response.data)})`,
-    );
     console.log("Upload response:", response.status, response.data);
     return response.data;
   } catch (err) {
     const errMsg = err.response
       ? JSON.stringify(err.response.data)
       : err.message;
-    printToAngular(`HATA: Gorsel yuklenemedi (${filename}): ${errMsg}`);
     console.error("Upload failed:", err.message);
     if (err.response) {
       console.error("Response data:", err.response.data);
@@ -77,7 +72,6 @@ class CameraCapture {
 
     try {
       const { plaka, cameras, uploadUrl, id, isHafriyatDokum } = payload || {};
-      printToAngular("Kamera yakalama baslatildi...");
       console.log("Kamera yakalama baslatildi...", payload);
 
       const targetDir = os.tmpdir();

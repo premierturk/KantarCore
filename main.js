@@ -16,29 +16,32 @@ const CameraCapture = require("./electron-helpers/camera-capture");
 // var ping = require("ping");
 let mainWindow;
 
-const safeMainWindow = new Proxy({}, {
-  get(target, prop) {
-    if (prop === 'webContents') {
+const safeMainWindow = new Proxy(
+  {},
+  {
+    get(target, prop) {
+      if (prop === "webContents") {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          return mainWindow.webContents;
+        }
+        return {
+          send: () => {},
+        };
+      }
       if (mainWindow && !mainWindow.isDestroyed()) {
-        return mainWindow.webContents;
+        const val = mainWindow[prop];
+        if (typeof val === "function") {
+          return val.bind(mainWindow);
+        }
+        return val;
       }
-      return {
-        send: () => {}
-      };
-    }
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      const val = mainWindow[prop];
-      if (typeof val === 'function') {
-        return val.bind(mainWindow);
+      if (prop === "isDestroyed") {
+        return () => true;
       }
-      return val;
-    }
-    if (prop === 'isDestroyed') {
-      return () => true;
-    }
-    return undefined;
-  }
-});
+      return undefined;
+    },
+  },
+);
 
 const printToAngular = (message) => {
   try {
@@ -72,14 +75,12 @@ function onReady() {
     mainWindow.loadURL("http://localhost:4200");
   else mainWindow.loadURL(`file://${__dirname}/out/kantarcore/index.html`);
 
-  //export after declare variables and methods
   module.exports = { mainWindow: safeMainWindow, printToAngular, app };
 
   AppConfig.initialize();
   KantarPort.start();
-  if (AppConfig.antenTip != "antenyok") {
-    AntenTcp.createServer();
-  }
+
+  AntenTcp.createServer();
 
   // if (AppConfig.pts) {
   //   plakaTespitApp();
@@ -97,13 +98,12 @@ function onReady() {
     autoUpdater.checkForUpdates();
   }, 4000);
 }
-// Tekil Çalışma Kilidi (Single Instance Lock)
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
   app.quit();
 } else {
-  app.on('second-instance', (event, commandLine, workingDirectory) => {
+  app.on("second-instance", (event, commandLine, workingDirectory) => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
@@ -118,19 +118,15 @@ app.on("window-all-closed", () => {
   try {
     execSync("taskkill /f /im ReaderAppSerialPort.exe");
     execSync("taskkill /f /im ReaderApp.exe");
-  } catch (e) {
-    // Çalışmıyorsa sessizce geç
-  }
-  app.exit(0); // Görev yöneticisinden anında temizle
+  } catch (e) {}
+  app.exit(0);
 });
 
 app.on("will-quit", () => {
   try {
     execSync("taskkill /f /im ReaderAppSerialPort.exe");
     execSync("taskkill /f /im ReaderApp.exe");
-  } catch (e) {
-    // Çalışmıyorsa sessizce geç
-  }
+  } catch (e) {}
 });
 
 app.on("activate", () => mainWindow ?? onReady());

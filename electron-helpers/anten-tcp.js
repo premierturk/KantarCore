@@ -1,4 +1,4 @@
-const net = require("net");
+﻿const net = require("net");
 const AppConfig = require("./app-config");
 //#region main.js variables
 var mainWindow;
@@ -20,65 +20,93 @@ class AntenTcp {
   static createServer() {
     initializeMainJsVariables();
 
-    // Start PTS TCP Server on port 8081 to receive plates directly from PTS
+    // PTS TCP Server — her zaman baslar (antenTip'ten bagimsiz)
+    AntenTcp.startPtsServer();
+
+    // HGS TCP Server — antenTip'e gore
+    if (AppConfig.antenTip === "hopland") {
+      AntenTcp.connectToHopland();
+    } else if (AppConfig.antenTip && AppConfig.antenTip !== "antenyok") {
+      AntenTcp.startHgsServer();
+    } else {
+      console.log("[HGS] antenTip yapilandirilmamis veya 'antenyok' — HGS server baslatilmadi.");
+    }
+  }
+
+  // -----------------------------------------------------------------
+  // PTS Server — Port 8081 — PlakaTespit.exe buraya baglanir
+  // -----------------------------------------------------------------
+  static startPtsServer() {
     try {
       const ptsServer = net.createServer((socket) => {
         let ptsBuffer = "";
-        console.log("[PTS TCP] Yeni bağlantı kabul edildi.");
-        printToAngular("[PTS TCP] Yeni bağlantı kabul edildi.");
+        console.log("[PTS TCP] Yeni baglanti kabul edildi.");
 
         socket.on("data", (d) => {
           ptsBuffer += d.toString();
-          
+
           let newlineIndex;
           while ((newlineIndex = ptsBuffer.indexOf("\n")) !== -1) {
             const line = ptsBuffer.substring(0, newlineIndex).trim();
             ptsBuffer = ptsBuffer.substring(newlineIndex + 1);
 
             if (line.length > 0) {
-              printToAngular("PTS Line: " + line);
-              mainWindow.webContents.send("tcp", line);
-              console.log("PTS TCP MESAJI =>", line);
+              mainWindow.webContents.send("plaka", line);
+              console.log("[PTS] PLAKA =>", line);
             }
           }
         });
 
         socket.on("close", () => {
+          // reconnect_each:true — baglanti her seferinde kapaniyor.
+          // Kalan buffer'da veri varsa isle, sonra temizle.
           const remaining = ptsBuffer.trim();
           if (remaining.length > 0) {
-            printToAngular("PTS Line (on close): " + remaining);
-            mainWindow.webContents.send("tcp", remaining);
-            console.log("PTS TCP MESAJI (on close) =>", remaining);
+            mainWindow.webContents.send("plaka", remaining);
+            console.log("[PTS] PLAKA (close) =>", remaining);
           }
+          ptsBuffer = ""; // Bir sonraki baglanti icin temizle
         });
 
         socket.on("error", (err) => {
-          console.error("[PTS TCP] Soket hatası:", err.message);
+          console.error("[PTS TCP] Soket hatasi:", err.message);
+          ptsBuffer = "";
         });
       });
 
-      ptsServer.listen(8081, () => {
+      ptsServer.on("error", (err) => {
+        console.error("[PTS TCP] Sunucu hatasi:", err.message);
+      });
+
+      ptsServer.listen(8081, "0.0.0.0", () => {
         console.log("[PTS TCP] Sunucu 8081 portunda dinliyor.");
-        printToAngular("[PTS TCP] Sunucu 8081 portunda dinliyor.");
       });
     } catch (e) {
-      console.error("[PTS TCP] Sunucu başlatılamadı:", e.message);
-    }
-
-    if (AppConfig.antenTip == "hopland") {
-      this.connectToHopland();
-    } else {
-      console.log("Sunucuya baglanildi takipsan!");
-      printToAngular("Sunucuya baglanildi takipsan!");
-      var server = net.createServer();
-
-      server.on("connection", this.handleConnection);
-
-      server.listen(5555, function () {
-        console.log("server listening to %j", server.address());
-      });
+      console.error("[PTS TCP] Sunucu baslatılamadı:", e.message);
     }
   }
+
+  // -----------------------------------------------------------------
+  // HGS Server — Port 5555 — ReaderApp (Takipsan) buraya baglanir
+  // -----------------------------------------------------------------
+  static startHgsServer() {
+    try {
+      const hgsServer = net.createServer();
+      hgsServer.on("connection", AntenTcp.handleConnection);
+      hgsServer.on("error", (err) => {
+        console.error("[HGS TCP] Sunucu hatasi:", err.message);
+      });
+      hgsServer.listen(5555, "0.0.0.0", () => {
+        console.log("[HGS TCP] Sunucu 5555 portunda dinliyor.");
+      });
+    } catch (e) {
+      console.error("[HGS TCP] Sunucu baslatılamadı:", e.message);
+    }
+  }
+
+  // -----------------------------------------------------------------
+  // Hopland — KantarCore disa baglanir (client)
+  // -----------------------------------------------------------------
   static connectToHopland() {
     try {
       if (reconnectInterval) {
@@ -88,15 +116,13 @@ class AntenTcp {
       if (AntenTcp.connection) {
         AntenTcp.connection.destroy();
         AntenTcp.connection = null;
-        console.log("Baglanti Sonlandirildi!");
-        printToAngular("Baglanti Sonlandirildi!");
+        console.log("[HGS Hopland] Baglanti sonlandirildi.");
       }
       var client = net.connect(
         { port: AppConfig.antenport, host: AppConfig.pcip },
         () => {
           AntenTcp.connection = client;
-          console.log("Sunucuya baglanildi!");
-          printToAngular("Sunucuya baglanildi!");
+          console.log("[HGS Hopland] Sunucuya baglanildi!");
         },
       );
       client.on("data", (data) => {
@@ -110,8 +136,7 @@ class AntenTcp {
         AntenTcp.connection = null;
       });
       client.on("error", (err) => {
-        console.log("Hata olustu (Antene Baglanilamadi): " + err.message);
-        printToAngular("Hata olustu (Antene Baglanilamadi): " + err.message);
+        console.log("[HGS Hopland] Baglanti hatasi: " + err.message);
         if (!reconnectInterval) {
           reconnectInterval = setInterval(() => {
             AntenTcp.connectToHopland();
@@ -119,7 +144,7 @@ class AntenTcp {
         }
       });
     } catch (error) {
-      printToAngular("Beklenmeyen Hata Olustu !");
+      printToAngular("Beklenmeyen Hata Olustu!");
     }
   }
 
@@ -128,51 +153,50 @@ class AntenTcp {
       AntenTcp.connection.write("AA010F000094CF");
       mainWindow.webContents.send(
         "successRestart",
-        "Anten Tekrardan Başlatıldı.",
+        "Anten Tekrardan Baslatildi.",
       );
-      console.log("Anten başlatma komutu AA010F000094CF");
-      printToAngular("Anten başlatma komutu AA010F000094CF");
+      console.log("[HGS] Anten baslama komutu: AA010F000094CF");
     }
   }
 
   static handleConnection(conn) {
     AntenTcp.connection = conn;
     var remoteAddress = conn.remoteAddress + ":" + conn.remotePort;
-    console.log("new client connection from " + remoteAddress);
-    printToAngular("new client connection from " + remoteAddress);
+    console.log("[HGS TCP] Yeni baglanti: " + remoteAddress);
+    printToAngular("HGS baglantisi: " + remoteAddress);
     conn.on("data", onConnData);
     conn.on("error", onConnError);
     conn.on("close", () =>
-      console.log("connection closed from " + remoteAddress),
+      console.log("[HGS TCP] Baglanti kapandi: " + remoteAddress),
     );
   }
 
   static openBariyer(event) {
     if (AntenTcp.connection) {
-      // if (AppConfig.antenTip == "hopland") {
-      //   AntenTcp.connection.write("AA010900020100FD93");
-      //   AntenTcp.connection.write("AA010900020200FD93");
-      //   mainWindow.webContents.send("basarili", "Çıkış bariyeri açıldı.");
-      // } else {
       AntenTcp.connection.write("0100000111040D12CA");
-      mainWindow.webContents.send("basarili", "Çıkış bariyeri açıldı.");
-      // }
+      mainWindow.webContents.send("basarili", "Cikis bariyeri acildi.");
     }
   }
 }
 
+// -----------------------------------------------------------------
+// HGS Veri Handler — ReaderApp / Hopland / Takipsan
+// Sadece 1001 ve 4001 ile baslayan etiketleri IPC "hgs" olarak iletir
+// -----------------------------------------------------------------
 let tcpReadBuffer = "";
 
 function onConnData(d) {
   const buffer = Buffer.from(d);
   const hexString = buffer.toString("hex");
-  if (AppConfig.antenTip == "hopland" && !AppConfig.reader) {
+
+  if (AppConfig.antenTip === "hopland" && !AppConfig.reader) {
     const searchStr = "4001";
     const indexStr = hexString.indexOf(searchStr);
 
-    if (indexStr != -1) {
+    if (indexStr !== -1) {
       const yeniEtiketmesg = hexString.slice(indexStr, indexStr + 8);
-      mainWindow.webContents.send("tcp", yeniEtiketmesg);
+      mainWindow.webContents.send("hgs", yeniEtiketmesg);
+      console.log("[HGS] ETIKET (yeni format) =>", yeniEtiketmesg);
       return;
     } else {
       var eskiEtiketHex = hexString.slice(32, 38);
@@ -184,33 +208,22 @@ function onConnData(d) {
       ) {
         eskiEtiketHex = hexString.slice(31, 38);
         eskiEtiketmsg = parseInt(eskiEtiketHex, 16);
-        mainWindow.webContents.send("tcp", eskiEtiketmsg);
-        console.log("TCP MESAJI =>", eskiEtiketmsg);
+        mainWindow.webContents.send("hgs", eskiEtiketmsg);
+        console.log("[HGS] ETIKET (samsun) =>", eskiEtiketmsg);
         return;
       }
       if (String(eskiEtiketmsg).startsWith("1001")) {
-        mainWindow.webContents.send("tcp", eskiEtiketmsg);
-        console.log("TCP MESAJI =>", eskiEtiketmsg);
+        mainWindow.webContents.send("hgs", eskiEtiketmsg);
+        console.log("[HGS] ETIKET =>", eskiEtiketmsg);
         return;
       }
     }
+    // Hopland modunda PTS JSON parse blogu KALDIRILDI.
+    // PTS artik ayri porta (8081) geliyor, burada islenmez.
 
-    const rawString = d.toString().trim();
-    if (rawString.startsWith("{") && rawString.endsWith("}")) {
-      try {
-        const parsed = JSON.parse(rawString);
-        if (parsed && parsed.plate) {
-          mainWindow.webContents.send("tcp", parsed.plate);
-          console.log("TCP MESAJI (PTS) =>", parsed.plate);
-          return;
-        }
-      } catch (e) {
-        console.error("PTS JSON parse hatası:", e);
-      }
-    }
   } else if (AppConfig.reader) {
     tcpReadBuffer += d.toString();
-    
+
     let newlineIndex;
     while ((newlineIndex = tcpReadBuffer.indexOf("\n")) !== -1) {
       const line = tcpReadBuffer.substring(0, newlineIndex).trim();
@@ -218,11 +231,12 @@ function onConnData(d) {
 
       if (line.length > 0) {
         printToAngular("reader line : " + line);
-        mainWindow.webContents.send("tcp", line);
-        console.log("TCP MESAJI =>", line);
+        mainWindow.webContents.send("hgs", line);
+        console.log("[HGS] ETIKET (reader) =>", line);
       }
     }
   } else {
+    // Takipsan binary format
     buffer.forEach((element) => {
       arr.push(element);
     });
@@ -232,22 +246,22 @@ function onConnData(d) {
     }
     printToAngular("arr string : " + arr);
 
-    // 1001 ile başlayanlarda 101,19,152 gelir
+    // 1001 ile baslayanlar: 101,19,152
     let bindexb1 = arr.indexOf(101);
     let bindexb2 = arr.indexOf(19);
     let bindex = arr.indexOf(152);
 
-    // 4001 ile başlayanlarda 238,0,64 gelir
+    // 4001 ile baslayanlar: 238,0,64
     let dindexd1 = arr.indexOf(238);
     let dindexd2 = arr.indexOf(0);
     let dindex = arr.indexOf(64);
 
     if (
-      bindexb1 != -1 &&
-      bindexb2 != -1 &&
-      bindex != -1 &&
-      bindex == bindexb2 + 1 &&
-      bindexb2 == bindexb1 + 1
+      bindexb1 !== -1 &&
+      bindexb2 !== -1 &&
+      bindex !== -1 &&
+      bindex === bindexb2 + 1 &&
+      bindexb2 === bindexb1 + 1
     ) {
       const hex1 = byteToHex(arr[bindex]);
       const hex2 = byteToHex(arr[bindex + 1]);
@@ -260,11 +274,12 @@ function onConnData(d) {
       var dataString = data.toString();
       if (dataString.startsWith("1001")) {
         tcpmessages.push(data);
-        if (tcpmessages.length == 2) {
-          let allSame = [...new Set(tcpmessages)].length == 1;
+        if (tcpmessages.length === 2) {
+          let allSame = [...new Set(tcpmessages)].length === 1;
           if (allSame) {
-            printToAngular("TCP MESSAGE => " + dataString);
-            mainWindow.webContents.send("tcp", dataString);
+            printToAngular("HGS ETIKET => " + dataString);
+            mainWindow.webContents.send("hgs", dataString);
+            console.log("[HGS] ETIKET (1001) =>", dataString);
             tcpmessages = [];
           } else {
             tcpmessages = tcpmessages.slice(1);
@@ -272,11 +287,11 @@ function onConnData(d) {
         }
       }
     } else if (
-      dindexd1 != -1 &&
-      dindexd2 != -1 &&
-      dindex != -1 &&
-      dindex == dindexd2 + 1 &&
-      dindexd2 == dindexd1 + 1
+      dindexd1 !== -1 &&
+      dindexd2 !== -1 &&
+      dindex !== -1 &&
+      dindex === dindexd2 + 1 &&
+      dindexd2 === dindexd1 + 1
     ) {
       const hex1 = byteToHex(arr[dindex]);
       const hex2 = byteToHex(arr[dindex + 1]);
@@ -295,11 +310,12 @@ function onConnData(d) {
       var dataString = data.toString();
       if (dataString.startsWith("4001")) {
         tcpmessages.push(data);
-        if (tcpmessages.length == 2) {
-          let allSame = [...new Set(tcpmessages)].length == 1;
+        if (tcpmessages.length === 2) {
+          let allSame = [...new Set(tcpmessages)].length === 1;
           if (allSame) {
-            printToAngular("TCP MESSAGE => " + dataString);
-            mainWindow.webContents.send("tcp", dataString);
+            printToAngular("HGS ETIKET => " + dataString);
+            mainWindow.webContents.send("hgs", dataString);
+            console.log("[HGS] ETIKET (4001) =>", dataString);
             tcpmessages = [];
           } else {
             tcpmessages = tcpmessages.slice(1);
@@ -307,60 +323,6 @@ function onConnData(d) {
         }
       }
     }
-
-    // let markerIndex = buffer.indexOf(13);
-    // if (markerIndex === -1) {
-    //   markerIndex = buffer.indexOf(11);
-    //   if (markerIndex === -1) {
-    //     buffer.forEach((element) => {
-    //       tcpmessages.push(element);
-    //     });
-    //     return;
-    //   } else {
-    //     for (let index = 0; index < markerIndex; index++) {
-    //       tcpmessages.push(buffer[index]);
-    //     }
-    //   }
-    // }
-    // if (tcpmessages[tcpmessages.length - 4].toString() == "64") {
-    //   const hex1 = tcpmessages[tcpmessages.length - 1];
-    //   const hex2 = tcpmessages[tcpmessages.length - 2];
-    //   const hex3 = tcpmessages[tcpmessages.length - 3];
-    //   const hex4 = tcpmessages[tcpmessages.length - 4];
-    //   if (
-    //     hex1 === undefined ||
-    //     hex2 === undefined ||
-    //     hex3 === undefined ||
-    //     hex4 === undefined
-    //   ) {
-    //     return;
-    //   }
-    //   const data = (hex4 << 24) | (hex3 << 16) | (hex2 << 8) | hex1;
-    //   const dataString = data.toString(16).padStart(8, "0");
-    //   if (dataString.startsWith("4001")) {
-    //     if (tcpmessages.length > 0) {
-    //       mainWindow.webContents.send("tcp", dataString);
-    //       tcpmessages = [];
-    //       console.log("TCP MESAJI =>", dataString);
-    //     }
-    //   }
-    // } else {
-    //   const hex1 = tcpmessages[tcpmessages.length - 1];
-    //   const hex2 = tcpmessages[tcpmessages.length - 2];
-    //   const hex3 = tcpmessages[tcpmessages.length - 3];
-    //   if (hex1 === undefined || hex2 === undefined || hex3 === undefined) {
-    //     return;
-    //   }
-    //   const data = (hex3 << 16) | (hex2 << 8) | hex1;
-    //   const dataString = data.toString();
-    //   if (dataString.startsWith("1001")) {
-    //     if (tcpmessages.length > 0) {
-    //       mainWindow.webContents.send("tcp", dataString.toString());
-    //       tcpmessages = [];
-    //       console.log("TCP MESAJI =>", dataString.toString());
-    //     }
-    //   }
-    // }
   }
 }
 
@@ -374,8 +336,8 @@ function byteToHex(byte) {
 }
 
 function onConnError(err) {
-  console.log("Connection eror");
-  printToAngular("Connection eror");
+  console.log("[HGS TCP] Baglanti hatasi:", err.message);
+  printToAngular("HGS Baglanti Hatasi");
 }
 
 module.exports = AntenTcp;
