@@ -13,6 +13,21 @@ function initializeMainJsVariables() {
   printToAngular = mainJs.printToAngular;
 }
 
+let workerWindow = null;
+
+function getWorkerWindow() {
+  if (!workerWindow || workerWindow.isDestroyed()) {
+    workerWindow = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
+      }
+    });
+  }
+  return workerWindow;
+}
+
 class FisPrinter {
   static printFis(event, data) {
     if (!AppConfig.isPrinterOn) return;
@@ -72,20 +87,14 @@ class FisPrinter {
         </html>
       `;
 
-      // Gizli bir BrowserWindow oluşturarak sayfayı yüklüyoruz
-      let workerWindow = new BrowserWindow({
-        show: false,
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true
-        }
-      });
+      // Kalıcı BrowserWindow nesnesini alıyoruz (Sıfırdan süreç başlatma maliyetini önler)
+      const win = getWorkerWindow();
 
-      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(htmlContent);
-      workerWindow.loadURL(dataUrl);
+      // Eski did-finish-load dinleyicilerini temizleyerek mükerrer yazdırmayı önlüyoruz
+      win.webContents.removeAllListeners("did-finish-load");
 
-      workerWindow.webContents.on("did-finish-load", () => {
-        workerWindow.webContents.print({
+      win.webContents.on("did-finish-load", () => {
+        win.webContents.print({
           silent: true,
           deviceName: AppConfig.printerName,
           margins: { marginType: 'none' } // Kenar boşlukları 0
@@ -97,11 +106,11 @@ class FisPrinter {
             printToAngular("Yazdırma hatası: " + errorType);
             console.error("Yazdırma hatası:", errorType);
           }
-          // Pencereyi yok edip belleği temizliyoruz
-          workerWindow.destroy();
-          workerWindow = null;
         });
       });
+
+      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(htmlContent);
+      win.loadURL(dataUrl);
 
     } catch (error) {
       printToAngular(error);

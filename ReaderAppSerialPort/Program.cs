@@ -305,7 +305,6 @@ namespace RFIDEPCReader
       {
         NetworkStream stream = client.GetStream();
         byte[] buffer = new byte[4096];
-        StringBuilder jsonBuffer = new StringBuilder();
 
         while (client.Connected)
         {
@@ -318,123 +317,7 @@ namespace RFIDEPCReader
 
           try
           {
-            // Gelen veriyi JSON buffer'a ekle
-            jsonBuffer.Append(receivedData);
-            string accumulated = jsonBuffer.ToString().Trim();
-
-            // JSON verisi içeriyor mu kontrol et
-            if (accumulated.Contains("{"))
-            {
-              // JSON mesajlarını tek tek çıkar ve işle
-              while (true)
-              {
-                int jsonStart = accumulated.IndexOf('{');
-                if (jsonStart == -1)
-                  break;
-
-                // JSON başlangıcından önce hex veri varsa onu işle
-                if (jsonStart > 0)
-                {
-                  string preData = accumulated.Substring(0, jsonStart).Trim();
-                  if (!string.IsNullOrEmpty(preData))
-                  {
-                    ProcessHexData(preData);
-                  }
-                }
-
-                // Eşleşen kapanış süslü parantezini bul
-                int braceCount = 0;
-                int jsonEnd = -1;
-                for (int i = jsonStart; i < accumulated.Length; i++)
-                {
-                  if (accumulated[i] == '{') braceCount++;
-                  else if (accumulated[i] == '}') braceCount--;
-
-                  if (braceCount == 0)
-                  {
-                    jsonEnd = i;
-                    break;
-                  }
-                }
-
-                if (jsonEnd == -1)
-                {
-                  // JSON henüz tamamlanmadı, sonraki okumayı bekle
-                  // Sadece JSON başlangıcından itibaren tut
-                  jsonBuffer.Clear();
-                  jsonBuffer.Append(accumulated.Substring(jsonStart));
-                  break;
-                }
-
-                // Tam JSON mesajını çıkar
-                string jsonMessage = accumulated.Substring(jsonStart, jsonEnd - jsonStart + 1);
-                accumulated = accumulated.Substring(jsonEnd + 1).Trim();
-
-                // PTS JSON VERİSİ
-                /*
-                 * {"plate":"34OTO34","ts":"2026-06-29T15:33:03","evidence":"data/evidence/34OTO34_20260629_153303.jpg"}
-                 */
-                try
-                {
-                  string extractedPlate = "";
-                  int plateKeyIndex = jsonMessage.IndexOf("\"plate\"");
-                  if (plateKeyIndex != -1)
-                  {
-                    int colonIndex = jsonMessage.IndexOf(":", plateKeyIndex);
-                    if (colonIndex != -1)
-                    {
-                      int startQuote = jsonMessage.IndexOf("\"", colonIndex);
-                      if (startQuote != -1)
-                      {
-                        int endQuote = jsonMessage.IndexOf("\"", startQuote + 1);
-                        if (endQuote != -1)
-                        {
-                          extractedPlate = jsonMessage.Substring(startQuote + 1, endQuote - startQuote - 1).Trim();
-                        }
-                      }
-                    }
-                  }
-
-                  if (!string.IsNullOrEmpty(extractedPlate))
-                  {
-                    Console.WriteLine($"[PTS] {extractedPlate}");
-                    lock (clientLock)
-                    {
-                      connectedClients.Remove(client);
-                    }
-                    BroadcastToAllClients(jsonMessage, client);
-                  }
-                }
-                catch (Exception ex)
-                {
-                  Console.WriteLine($"[UYARI] Plaka ayıklama hatası: {ex.Message}");
-                }
-              }
-
-              // Kalan veriyi buffer'da tut (tamamlanmamış JSON veya hex veri)
-              if (!accumulated.Contains("{"))
-              {
-                jsonBuffer.Clear();
-                if (!string.IsNullOrEmpty(accumulated))
-                {
-                  // Kalan hex veri varsa işle
-                  ProcessHexData(accumulated);
-                }
-              }
-            }
-            else
-            {
-              // JSON yok, HGS hex verisi olarak işle
-              jsonBuffer.Clear();
-              ProcessHexData(accumulated);
-            }
-
-            // Buffer çok büyürse temizle (koruma)
-            if (jsonBuffer.Length > 10000)
-            {
-              Console.WriteLine("[UYARI] TCP JSON buffer çok büyüdü, temizleniyor...");
-              jsonBuffer.Clear();
-            }
+            ProcessHexData(receivedData);
           }
           catch (Exception ex)
           {

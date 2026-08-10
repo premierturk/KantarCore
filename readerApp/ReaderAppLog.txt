@@ -309,3 +309,8 @@
 [HIDE] Time: 8/7/2026 11:19:51 AM, hWnd: 1704758
 [SHOW] Time: 8/7/2026 11:20:55 AM, hWnd: 1704758
 [SHOW RESULTS] r1: False, r2: True, r3: True
+[HIDE] Time: 8/7/2026 2:09:14 PM, hWnd: 15926948
+[HIDE] Time: 8/7/2026 2:09:34 PM, hWnd: 53937288
+[SHOW] Time: 8/7/2026 2:09:37 PM, hWnd: 53937288
+[SHOW RESULTS] r1: False, r2: True, r3: True
+[HIDE] Time: 8/7/2026 3:33:20 PM, hWnd: 12455884

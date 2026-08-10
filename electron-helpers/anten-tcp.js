@@ -19,6 +19,52 @@ class AntenTcp {
 
   static createServer() {
     initializeMainJsVariables();
+
+    // Start PTS TCP Server on port 8081 to receive plates directly from PTS
+    try {
+      const ptsServer = net.createServer((socket) => {
+        let ptsBuffer = "";
+        console.log("[PTS TCP] Yeni bağlantı kabul edildi.");
+        printToAngular("[PTS TCP] Yeni bağlantı kabul edildi.");
+
+        socket.on("data", (d) => {
+          ptsBuffer += d.toString();
+          
+          let newlineIndex;
+          while ((newlineIndex = ptsBuffer.indexOf("\n")) !== -1) {
+            const line = ptsBuffer.substring(0, newlineIndex).trim();
+            ptsBuffer = ptsBuffer.substring(newlineIndex + 1);
+
+            if (line.length > 0) {
+              printToAngular("PTS Line: " + line);
+              mainWindow.webContents.send("tcp", line);
+              console.log("PTS TCP MESAJI =>", line);
+            }
+          }
+        });
+
+        socket.on("close", () => {
+          const remaining = ptsBuffer.trim();
+          if (remaining.length > 0) {
+            printToAngular("PTS Line (on close): " + remaining);
+            mainWindow.webContents.send("tcp", remaining);
+            console.log("PTS TCP MESAJI (on close) =>", remaining);
+          }
+        });
+
+        socket.on("error", (err) => {
+          console.error("[PTS TCP] Soket hatası:", err.message);
+        });
+      });
+
+      ptsServer.listen(8081, () => {
+        console.log("[PTS TCP] Sunucu 8081 portunda dinliyor.");
+        printToAngular("[PTS TCP] Sunucu 8081 portunda dinliyor.");
+      });
+    } catch (e) {
+      console.error("[PTS TCP] Sunucu başlatılamadı:", e.message);
+    }
+
     if (AppConfig.antenTip == "hopland") {
       this.connectToHopland();
     } else {

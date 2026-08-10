@@ -22,7 +22,7 @@ plate:
 output:
   type: tcp_client
   host: 10.210.210.114
-  port: 8080
+  port: 8081
   format: json
   reconnect_each: true
 logging:

@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, Menu } = require("electron");
 const Shortcut = require("electron-shortcut");
 const { autoUpdater } = require("electron-updater");
 const path = require("path");
-const { spawn } = require("child_process");
+const { spawn, execSync } = require("child_process");
 const AppConfig = require("./electron-helpers/app-config");
 const AntenTcp = require("./electron-helpers/anten-tcp");
 const KantarPort = require("./electron-helpers/kantar-port");
@@ -15,8 +15,38 @@ const AppFiles = require("./electron-helpers/app-files");
 const CameraCapture = require("./electron-helpers/camera-capture");
 // var ping = require("ping");
 let mainWindow;
-const printToAngular = (message) =>
-  mainWindow.webContents.send("print", message);
+
+const safeMainWindow = new Proxy({}, {
+  get(target, prop) {
+    if (prop === 'webContents') {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        return mainWindow.webContents;
+      }
+      return {
+        send: () => {}
+      };
+    }
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      const val = mainWindow[prop];
+      if (typeof val === 'function') {
+        return val.bind(mainWindow);
+      }
+      return val;
+    }
+    if (prop === 'isDestroyed') {
+      return () => true;
+    }
+    return undefined;
+  }
+});
+
+const printToAngular = (message) => {
+  try {
+    safeMainWindow.webContents.send("print", message);
+  } catch (e) {
+    // Kapatma sırasındaki hataları yut
+  }
+};
 
 function onReady() {
   mainWindow = new BrowserWindow({
@@ -43,7 +73,7 @@ function onReady() {
   else mainWindow.loadURL(`file://${__dirname}/out/kantarcore/index.html`);
 
   //export after declare variables and methods
-  module.exports = { mainWindow, printToAngular, app };
+  module.exports = { mainWindow: safeMainWindow, printToAngular, app };
 
   AppConfig.initialize();
   KantarPort.start();
@@ -67,19 +97,39 @@ function onReady() {
     autoUpdater.checkForUpdates();
   }, 4000);
 }
-//app
-app.on("ready", onReady);
+// Tekil Çalışma Kilidi (Single Instance Lock)
+const gotTheLock = app.requestSingleInstanceLock();
 
-app.on("window-all-closed", () => app.quit());
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+
+  //app
+  app.on("ready", onReady);
+}
+
+app.on("window-all-closed", () => {
+  try {
+    execSync("taskkill /f /im ReaderAppSerialPort.exe");
+    execSync("taskkill /f /im ReaderApp.exe");
+  } catch (e) {
+    // Çalışmıyorsa sessizce geç
+  }
+  app.exit(0); // Görev yöneticisinden anında temizle
+});
 
 app.on("will-quit", () => {
-  const { exec } = require("child_process");
   try {
-    exec("taskkill /f /im ReaderAppSerialPort.exe");
-    exec("taskkill /f /im ReaderApp.exe");
-    // exec("taskkill /f /im PlakaTespit.exe");
+    execSync("taskkill /f /im ReaderAppSerialPort.exe");
+    execSync("taskkill /f /im ReaderApp.exe");
   } catch (e) {
-    console.error("ReaderApp veya PlakaTespit temizlenemedi:", e);
+    // Çalışmıyorsa sessizce geç
   }
 });
 

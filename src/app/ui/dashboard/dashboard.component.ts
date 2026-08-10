@@ -682,26 +682,39 @@ export class DashboardComponent implements OnInit {
     this.barkodElleGiris = this.kantarConfig.barkodOkuyucu;
 
     this.isLoading = true;
-    this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
+
+    const [araclistesiData, firmaData, kamuFisData, tasimaKabulData, depolamaAlaniData] = await Promise.all([
+      this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`),
+      this.ds.get(`${this.url}/FirmaListesiByCariHesapTuru`),
+      this.ds.get(`${this.url}/kantar/KamuFisListesi`),
+      this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`),
+      this.ds.get(`${this.url}/kantar/DepolamaAlani?DepolamaAlaniId=${this.kantarConfig.depolamaAlanId}`)
+    ]);
+
+    this.ddPlaka = new DropdownProps("PlakaNo", araclistesiData);
     this.ddTumPlakalar = this.ddPlaka.list;
-    this.ddFirma = new DropdownProps("FirmaAdi", await this.ds.get(`${this.url}/FirmaListesiByCariHesapTuru`));
-    this.kamuFisListesi = await this.ds.get(`${this.url}/kantar/KamuFisListesi`);
-    this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
+    this.ddFirma = new DropdownProps("FirmaAdi", firmaData);
+    this.kamuFisListesi = kamuFisData;
+    this.tasimaKabulListesi = tasimaKabulData;
     this.isLoading = false;
 
-    this.depolamaAlani = await this.ds.get(`${this.url}/kantar/DepolamaAlani?DepolamaAlaniId=${this.kantarConfig.depolamaAlanId}`);
-    if (this.depolamaAlani.DepoalamaAlani != null) {
+    this.depolamaAlani = depolamaAlaniData;
+    if (this.depolamaAlani && this.depolamaAlani.DepoalamaAlani != null) {
       if (this.depolamaAlani.DepoalamaAlani.OgsAktif) {
         this.plakaDisable = true;
       }
     }
 
     this.setinterval = setInterval(async () => {
-      this.tasimaKabulListesi = await this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`);
-      this.kamuFisListesi = await this.ds.get(`${this.url}/kantar/KamuFisListesi`);
-      this.ddTumPlakalar = await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`);
-      // this.ddPlaka = new DropdownProps("PlakaNo", await this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`));
-      // this.ddTumPlakalar = this.ddPlaka.list;
+      const [tasimaKabulDataUpdate, kamuFisDataUpdate, araclistesiDataUpdate] = await Promise.all([
+        this.ds.get(`${this.url}/kantar/TasimaKabulListesiAktif`),
+        this.ds.get(`${this.url}/kantar/KamuFisListesi`),
+        this.ds.get(`${this.url}/kantar/araclistesi?EtiketNo=`)
+      ]);
+
+      this.tasimaKabulListesi = tasimaKabulDataUpdate;
+      this.kamuFisListesi = kamuFisDataUpdate;
+      this.ddTumPlakalar = araclistesiDataUpdate;
       console.clear();
     }, 60000);
 
@@ -1076,8 +1089,8 @@ export class DashboardComponent implements OnInit {
     } else if (isTag) {
       // 2. Durum: Gelen veri HGS Etiket verisi
 
-      // Eğer son 10 saniyede PTS'den bir plaka okunduysa, onu koru ve HGS'nin ezmesini engelle
-      const plateActive = (now - lastPlateTimeVal) < 10000 && lastPlateValue !== "";
+      // Eğer son 5 saniyede PTS'den bir plaka okunduysa, onu koru ve HGS'nin ezmesini engelle
+      const plateActive = (now - lastPlateTimeVal) < 5000 && lastPlateValue !== "";
 
       if (plateActive) {
         const cleanPlateForMatch = lastPlateValue.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -1189,6 +1202,9 @@ export class DashboardComponent implements OnInit {
       this.isLoading = true;
       var result = await this.ds.post(`${this.url}/kantar/hafriyatkabul/KabulBelgesi`, { AracId: this.formData.AracId, FirmaId: null, SahaId: sahaId, UserId: this.user.userid, BelgeNo: this.formData.BelgeNo, BarkodNo: this.formData.BarkodNo, DepolamaAlanId: this.kantarConfig.depolamaAlanId, Tonaj: this.formData.Tonaj, Dara: this.formData.Dara, GirisCikis: 'Giriş', isOffline: this.formData.IsOffline, IslemTarihi: new Date(), OgsPlakaNo: this.ogsPlakaNo });
       this.isLoading = false;
+      if (this.barkodTuru != "Kamu Fiş") {
+        this.responseToPrint(result.data);
+      }
       if (result.success) {
         if (this.list.length < 1) {
           var depolamaDurum = await this.ds.post(`${this.url}/DepolamaAlaniDurum`, { DepolamaAlaniDurumId: 0, DepolamaAlanId: this.kantarConfig.depolamaAlanId, Tarih: new Date(), DepolamaAlaniStatuId: "1", Durum: "", SMSDurum: false, Aciklama: "", Active: null, CreateUserId: this.user.userid, CreateDate: new Date() });
@@ -1199,9 +1215,7 @@ export class DashboardComponent implements OnInit {
           console.log("Bariyer Açma Komutu")
           this._electronService.ipcRenderer.send('bariyer');
         }
-        if (this.barkodTuru != "Kamu Fiş") {
-          this.responseToPrint(result.data);
-        }
+
         if (this.kantarConfig.cameras && this.kantarConfig.cameras.length > 0) {
           console.log("Kabul belgesi kaydedildi. Kamera kaydi tetikleniyor. Yapilandirilmis Kameralar:", this.kantarConfig.cameras);
           if (this._electronService.ipcRenderer) {
